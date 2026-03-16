@@ -41,6 +41,7 @@ export interface CustomerTransaction {
   points: number;
   description: string;
   timestamp: string;
+  availableFrom: string;
 }
 
 export interface TechnicalUser {
