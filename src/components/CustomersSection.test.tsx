@@ -5,7 +5,7 @@ import { CustomersSection } from './CustomersSection';
 describe('CustomersSection Component', () => {
   const mockCustomers = [
     {
-      id: '1',
+      id: 1,
       firstName: 'Jan',
       lastName: 'Kowalski',
       email: 'jan@example.com',

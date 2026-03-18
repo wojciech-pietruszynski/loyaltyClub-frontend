@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { AppHeader } from './AppHeader';
-import { Language } from '../i18n';
+import type { Language } from '../i18n';
 
 describe('AppHeader Component', () => {
   const mockProps = {

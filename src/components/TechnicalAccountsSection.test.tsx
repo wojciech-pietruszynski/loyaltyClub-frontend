@@ -6,7 +6,7 @@ describe('TechnicalAccountsSection Component', () => {
   const mockProps = {
     t: (key: string) => key,
     availableCountries: ['PL', 'EN'],
-    technicalUserForm: { username: '', password: '', country: '' },
+    technicalUserForm: { username: '', password: '', country: '', enabled: true },
     setTechnicalUserForm: vi.fn(),
     technicalUsersLoading: false,
     handleCreateTechnicalUser: vi.fn(async (e) => e.preventDefault()),

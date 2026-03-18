@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Alert, ConfigProvider, Space, Tabs, theme as antdTheme } from 'antd';
 import { Percent, PlusCircle, Ticket, UserPlus, Users, Wrench } from 'lucide-react';
-import { useEffectEvent } from 'react';
 
 import api from './api/client';
 import { translate, type Language, type TranslationKey } from './i18n';
@@ -9,14 +8,9 @@ import appLogo from './assets/logo.png';
 
 // Components
 import { AddCustomerSection } from './components/AddCustomerSection';
-import { AddPointsSection } from './components/AddPointsSection';
 import { AppHeader } from './components/AppHeader';
-import { CouponsSection } from './components/CouponsSection';
-import { CustomerDetailsModal } from './components/CustomerDetailsModal';
 import { CustomersSection } from './components/CustomersSection';
 import { LoginView } from './components/LoginView';
-import { StorePromotionsSection } from './components/StorePromotionsSection';
-import { TechnicalAccountsSection } from './components/TechnicalAccountsSection';
 import { ToolsSection } from './components/ToolsSection';
 
 // Hooks
@@ -27,8 +21,8 @@ import { usePromotions } from './hooks/usePromotions';
 import { useTechnicalUsers } from './hooks/useTechnicalUsers';
 
 // Types
-import type { Coupon, Customer, CustomerTransaction, StorePromotion, TechnicalUser } from './types';
-import { localeByLanguage, type CouponTemplateFormState, type CouponFormState, type CustomerCouponFormState, type CustomerEditFormState, type CustomerModalTab, type NewCustomerFormState, type NewPointsFormState, type PromotionFormState, type Tab, type TechnicalUserFormState, type Theme } from './types/ui';
+import type { Customer } from './types';
+import { type NewCustomerFormState, type Tab, type Theme } from './types/ui';
 
 import './App.css';
 
@@ -39,18 +33,6 @@ function extractApiError(err: unknown, fallback: string): string {
     return apiErr.response?.data?.detail || apiErr.response?.data?.error || apiErr.message || fallback;
   }
   return (err as any)?.message || fallback;
-}
-
-function formatDateTime(iso?: string): string {
-  if (!iso) return '-';
-  const d = new Date(iso);
-  return d.toLocaleString();
-}
-
-function formatDate(iso?: string): string {
-  if (!iso) return '-';
-  const d = new Date(iso);
-  return d.toLocaleDateString();
 }
 
 function App() {
@@ -141,17 +123,12 @@ function App() {
 
   // Forms State (Keeping simple forms local to App or move to more specific components if needed)
   const [newCustomer, setNewCustomer] = useState<NewCustomerFormState>({ firstName: '', lastName: '', email: '', customerNumber: '', phoneNumber: '', country: '' });
-  const [newPoints, setNewPoints] = useState<NewPointsFormState>({ customerId: '', points: 0, description: t('purchaseProducts') });
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
 
-  // Modal Handlers
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [customerModalTab, setCustomerModalTab] = useState<CustomerModalTab>('profile');
-  
   const openCustomerModal = async (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setCustomerModalTab('profile');
+    // Implement modal logic if needed
+    console.log('Open modal for:', customer);
   };
 
   if (!auth.loggedIn) {
