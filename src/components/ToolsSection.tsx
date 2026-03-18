@@ -20,8 +20,8 @@ export function ToolsSection({
       <p>{t('toolsDescription')}</p>
       <form onSubmit={(event) => { void handleImportCustomers(event); }}>
         <div className="form-group">
-          <label>{t('csvFile')}</label>
-          <input className="input" type="file" accept=".csv,text/csv" onChange={(event) => setImportFile(event.target.files?.[0] ?? null)} required />
+          <label htmlFor="csvFileInput">{t('csvFile')}</label>
+          <input id="csvFileInput" className="input" type="file" accept=".csv,text/csv" onChange={(event) => setImportFile(event.target.files?.[0] ?? null)} required />
         </div>
         <div className="form-actions">
           <button className="btn btn-primary" type="submit" disabled={importing}>
