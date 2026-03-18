@@ -8,9 +8,14 @@ import appLogo from './assets/logo.png';
 
 // Components
 import { AddCustomerSection } from './components/AddCustomerSection';
+import { AddPointsSection } from './components/AddPointsSection';
 import { AppHeader } from './components/AppHeader';
+import { CouponsSection } from './components/CouponsSection';
+import { CustomerDetailsModal } from './components/CustomerDetailsModal';
 import { CustomersSection } from './components/CustomersSection';
 import { LoginView } from './components/LoginView';
+import { StorePromotionsSection } from './components/StorePromotionsSection';
+import { TechnicalAccountsSection } from './components/TechnicalAccountsSection';
 import { ToolsSection } from './components/ToolsSection';
 
 // Hooks
@@ -21,8 +26,19 @@ import { usePromotions } from './hooks/usePromotions';
 import { useTechnicalUsers } from './hooks/useTechnicalUsers';
 
 // Types
-import type { Customer } from './types';
-import { type NewCustomerFormState, type Tab, type Theme } from './types/ui';
+import type { Customer, StorePromotion, TechnicalUser } from './types';
+import { 
+  type CouponFormState, 
+  type CouponTemplateFormState, 
+  type CustomerModalTab, 
+  type CustomerEditFormState,
+  type NewCustomerFormState, 
+  type NewPointsFormState, 
+  type PromotionFormState, 
+  type Tab, 
+  type TechnicalUserFormState, 
+  type Theme 
+} from './types/ui';
 
 import './App.css';
 
@@ -33,6 +49,18 @@ function extractApiError(err: unknown, fallback: string): string {
     return apiErr.response?.data?.detail || apiErr.response?.data?.error || apiErr.message || fallback;
   }
   return (err as any)?.message || fallback;
+}
+
+function formatDateTime(iso?: string): string {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return d.toLocaleString();
+}
+
+function formatDate(iso?: string): string {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return d.toLocaleDateString();
 }
 
 function App() {
@@ -121,15 +149,65 @@ function App() {
     return tabs;
   }, [auth.authRole, t]);
 
-  // Forms State (Keeping simple forms local to App or move to more specific components if needed)
+  // Forms State
   const [newCustomer, setNewCustomer] = useState<NewCustomerFormState>({ firstName: '', lastName: '', email: '', customerNumber: '', phoneNumber: '', country: '' });
+  const [newPoints, setNewPoints] = useState<NewPointsFormState>({ customerId: '', points: 0, description: t('purchaseProducts') });
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
 
-  const openCustomerModal = async (customer: Customer) => {
-    // Implement modal logic if needed
-    console.log('Open modal for:', customer);
-  };
+  // Coupons State
+  const [couponDialog, setCouponDialog] = useState<'issue' | 'template' | 'browse' | 'browse-templates' | null>(null);
+  const [couponForm, setCouponForm] = useState<CouponFormState>({ customerId: '', couponTemplateId: '', reason: 'POINTS_EXCHANGE' });
+  const [couponTemplateForm, setCouponTemplateForm] = useState<CouponTemplateFormState>({ couponValue: '', minimumPurchaseValue: '', requiredPoints: '', country: '', validityDays: '', couponPrefix: '' });
+  const [couponCodeSearch, setCouponCodeSearch] = useState('');
+  const [couponSortBy, setCouponSortBy] = useState<'reason' | 'country' | 'status'>('reason');
+  const [couponSortValue, setCouponSortValue] = useState('ALL');
+
+  // Promotions State
+  const [promotionView, setPromotionView] = useState<'create' | 'browse' | null>(null);
+  const [promotionForm, setPromotionForm] = useState<PromotionFormState>({ id: null, name: '', country: '', pointsPerCurrency: '', startsAt: '', endsAt: '', enabled: true });
+
+  // Technical State
+  const [technicalUserForm, setTechnicalUserForm] = useState<TechnicalUserFormState>({ username: '', password: '', country: '', enabled: true });
+  const [technicalPasswordModalUser, setTechnicalPasswordModalUser] = useState<TechnicalUser | null>(null);
+  const [technicalPasswordValue, setTechnicalPasswordValue] = useState('');
+  const [technicalPasswordVisible, setTechnicalPasswordVisible] = useState(false);
+
+  // Modal Handlers
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerModalTab, setCustomerModalTab] = useState<CustomerModalTab>('profile');
+  const [customerModalLoading, setCustomerModalLoading] = useState(false);
+  const [customerTransactions, setCustomerTransactions] = useState([]);
+  const [customerCoupons, setCustomerCoupons] = useState([]);
+  const [purchaseHistorySeries, setPurchaseHistorySeries] = useState({ points: [], maxTotal: 0 });
+  const [customerEditForm, setCustomerEditForm] = useState<CustomerEditFormState>({ firstName: '', lastName: '', email: '', customerNumber: '', phoneNumber: '', country: '' });
+  const [customerCouponForm, setCustomerCouponForm] = useState({ couponTemplateId: '', reason: 'POINTS_EXCHANGE' });
+  
+  const openCustomerModal = useCallback(async (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setCustomerModalTab('profile');
+    setCustomerEditForm({
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      email: customer.email,
+      customerNumber: customer.customerNumber,
+      phoneNumber: customer.phoneNumber,
+      country: customer.country,
+    });
+    setCustomerModalLoading(true);
+    try {
+      const [transactions, coupons, history] = await Promise.all([
+        customerApi.fetchTransactions(customer.id),
+        customerApi.fetchCoupons(customer.id),
+        customerApi.fetchPurchaseHistory(customer.id)
+      ]);
+      setCustomerTransactions(transactions);
+      setCustomerCoupons(coupons);
+      setPurchaseHistorySeries(history);
+    } finally {
+      setCustomerModalLoading(false);
+    }
+  }, [customerApi]);
 
   if (!auth.loggedIn) {
     return (
@@ -199,7 +277,156 @@ function App() {
             />
           )}
 
-          {/* ... Other sections would be integrated here similarly ... */}
+          {activeTab === 'add-points' && (
+            <AddPointsSection
+              t={t}
+              newPoints={newPoints}
+              setNewPoints={setNewPoints}
+              customers={customerApi.customers}
+              handleAddPoints={async (e) => {
+                e.preventDefault();
+                if (await customerApi.addPoints(newPoints.customerId, newPoints.points, newPoints.description)) {
+                  setSuccess(t('pointsAddedSuccess'));
+                  setTimeout(() => setSuccess(null), 3000);
+                  setNewPoints({ customerId: '', points: 0, description: t('purchaseProducts') });
+                }
+              }}
+            />
+          )}
+
+          {activeTab === 'coupons' && (
+            <CouponsSection
+              t={t}
+              couponDialog={couponDialog}
+              setCouponDialog={setCouponDialog}
+              couponDialogError={couponApi.error}
+              setCouponDialogError={couponApi.setError}
+              closeCouponDialog={() => setCouponDialog(null)}
+              handleIssueCoupon={async (e) => {
+                e.preventDefault();
+                if (await couponApi.issueCoupon(couponForm)) {
+                  setSuccess(t('couponGeneratedSuccess', { code: '' }));
+                  setTimeout(() => setSuccess(null), 3000);
+                  setCouponDialog(null);
+                  setCouponForm({ customerId: '', couponTemplateId: '', reason: 'POINTS_EXCHANGE' });
+                }
+              }}
+              couponForm={couponForm}
+              setCouponForm={setCouponForm}
+              customers={customerApi.customers}
+              couponTemplates={couponApi.couponTemplates}
+              handleCreateCouponTemplate={async (e) => {
+                e.preventDefault();
+                if (await couponApi.createTemplate(couponTemplateForm)) {
+                  setSuccess(t('couponTemplateSaved'));
+                  setTimeout(() => setSuccess(null), 3000);
+                  setCouponDialog(null);
+                  setCouponTemplateForm({ couponValue: '', minimumPurchaseValue: '', requiredPoints: '', country: '', validityDays: '', couponPrefix: '' });
+                }
+              }}
+              couponTemplateForm={couponTemplateForm}
+              setCouponTemplateForm={setCouponTemplateForm}
+              availableCountries={promoApi.availableCountries}
+              availableCouponPrefixes={promoApi.availableCouponPrefixes}
+              couponCodeSearch={couponCodeSearch}
+              setCouponCodeSearch={setCouponCodeSearch}
+              couponSortBy={couponSortBy}
+              setCouponSortBy={setCouponSortBy}
+              couponSortValue={couponSortValue}
+              setCouponSortValue={setCouponSortValue}
+              couponSortValues={[]} // TODO: populate if needed
+              filteredCoupons={couponApi.coupons} // Simplified filtering for now
+              reasonLabel={(r) => t(r === 'POINTS_EXCHANGE' ? 'reasonPointsExchange' : 'reasonComplaint')}
+              statusLabel={(s) => t(s === 'ACTIVE' ? 'active' : s === 'USED' ? 'used' : 'expired')}
+              formatDateTime={formatDateTime}
+            />
+          )}
+
+          {activeTab === 'store-promotions' && (
+            <StorePromotionsSection
+              t={t}
+              availableCountries={promoApi.availableCountries}
+              promotionView={promotionView}
+              setPromotionView={setPromotionView}
+              resetPromotionForm={() => setPromotionForm({ id: null, name: '', country: '', pointsPerCurrency: '', startsAt: '', endsAt: '', enabled: true })}
+              closePromotionModal={() => setPromotionView(null)}
+              promotionForm={promotionForm}
+              setPromotionForm={setPromotionForm}
+              handleSavePromotion={async (e) => {
+                e.preventDefault();
+                if (await promoApi.savePromotion(promotionForm, promotionForm.id || undefined)) {
+                  setSuccess(t(promotionForm.id ? 'promotionUpdatedSuccess' : 'promotionCreatedSuccess'));
+                  setTimeout(() => setSuccess(null), 3000);
+                  setPromotionView(null);
+                }
+              }}
+              promotionSaving={promoApi.loading}
+              storePromotions={promoApi.storePromotions}
+              handleEditPromotion={(p: StorePromotion) => {
+                setPromotionForm({
+                  id: p.id,
+                  name: p.name,
+                  country: p.country,
+                  pointsPerCurrency: p.pointsPerCurrency.toString(),
+                  startsAt: p.startsAt.split('T')[0],
+                  endsAt: p.endsAt ? p.endsAt.split('T')[0] : '',
+                  enabled: p.enabled
+                });
+                setPromotionView('create');
+              }}
+              handleTogglePromotionStatus={async (p: StorePromotion, enabled: boolean) => {
+                if (await promoApi.togglePromotion(p.id, enabled)) {
+                  setSuccess(t(enabled ? 'promotionEnabledSuccess' : 'promotionDisabledSuccess'));
+                  setTimeout(() => setSuccess(null), 3000);
+                }
+              }}
+              formatDateTime={formatDateTime}
+            />
+          )}
+
+          {activeTab === 'technical-accounts' && (
+            <TechnicalAccountsSection
+              t={t}
+              availableCountries={promoApi.availableCountries}
+              technicalUserForm={technicalUserForm}
+              setTechnicalUserForm={setTechnicalUserForm}
+              technicalUsersLoading={techApi.loading}
+              handleCreateTechnicalUser={async (e) => {
+                e.preventDefault();
+                if (await techApi.createTechnicalUser(technicalUserForm)) {
+                  setSuccess(t('technicalUserCreated'));
+                  setTimeout(() => setSuccess(null), 3000);
+                  setTechnicalUserForm({ username: '', password: '', country: '', enabled: true });
+                }
+              }}
+              technicalUsers={techApi.technicalUsers}
+              handleToggleTechnicalUser={async (id, enabled) => {
+                if (await techApi.toggleTechnicalUser(id, enabled)) {
+                  setSuccess(t(enabled ? 'promotionEnabledSuccess' : 'promotionDisabledSuccess')); // Using promotion translations as fallback for now
+                  setTimeout(() => setSuccess(null), 3000);
+                }
+              }}
+              technicalPasswordModalUser={technicalPasswordModalUser}
+              setTechnicalPasswordModalUser={setTechnicalPasswordModalUser}
+              technicalPasswordValue={technicalPasswordValue}
+              setTechnicalPasswordValue={setTechnicalPasswordValue}
+              technicalPasswordVisible={technicalPasswordVisible}
+              setTechnicalPasswordVisible={setTechnicalPasswordVisible}
+              closeTechnicalPasswordModal={() => {
+                setTechnicalPasswordModalUser(null);
+                setTechnicalPasswordValue('');
+                setTechnicalPasswordVisible(false);
+              }}
+              handleUpdateTechnicalUserPassword={async (id, pwd) => {
+                if (await techApi.updatePassword(id, pwd)) {
+                  setSuccess(t('technicalUserPasswordUpdated'));
+                  setTimeout(() => setSuccess(null), 3000);
+                  setTechnicalPasswordModalUser(null);
+                  setTechnicalPasswordValue('');
+                }
+              }}
+            />
+          )}
           
           {activeTab === 'tools' && (
             <ToolsSection
@@ -225,6 +452,49 @@ function App() {
             />
           )}
         </div>
+
+        {selectedCustomer && (
+          <CustomerDetailsModal
+            selectedCustomer={selectedCustomer}
+            closeCustomerModal={() => setSelectedCustomer(null)}
+            customerModalTab={customerModalTab}
+            setCustomerModalTab={setCustomerModalTab}
+            customerModalError={customerApi.error}
+            customerModalLoading={customerModalLoading}
+            handleSaveCustomer={async (e) => {
+              e.preventDefault();
+              if (await customerApi.updateCustomer(selectedCustomer.id, customerEditForm)) {
+                setSuccess(t('customerSavedSuccess'));
+                setTimeout(() => setSuccess(null), 3000);
+                setSelectedCustomer(null);
+              }
+            }}
+            customerEditForm={customerEditForm}
+            setCustomerEditForm={setCustomerEditForm}
+            availableCountries={promoApi.availableCountries}
+            purchaseHistorySeries={purchaseHistorySeries}
+            customerTransactions={customerTransactions}
+            customerCouponForm={customerCouponForm}
+            setCustomerCouponForm={setCustomerCouponForm}
+            handleIssueCouponForSelectedCustomer={async (e) => {
+              e.preventDefault();
+              if (await couponApi.issueCoupon({ ...customerCouponForm, customerId: selectedCustomer.id.toString() })) {
+                setSuccess(t('couponGeneratedSuccess', { code: '' }));
+                setTimeout(() => setSuccess(null), 3000);
+                const updatedCoupons = await customerApi.fetchCoupons(selectedCustomer.id);
+                setCustomerCoupons(updatedCoupons);
+                setCustomerModalTab('coupon-history');
+              }
+            }}
+            couponTemplates={couponApi.couponTemplates}
+            customerCoupons={customerCoupons}
+            statusLabel={(s) => t(s === 'ACTIVE' ? 'active' : s === 'USED' ? 'used' : 'expired')}
+            reasonLabel={(r) => t(r === 'POINTS_EXCHANGE' ? 'reasonPointsExchange' : 'reasonComplaint')}
+            formatDate={formatDate}
+            formatDateTime={formatDateTime}
+            t={t}
+          />
+        )}
       </div>
       {success && <Alert className="app-toast" type="success" showIcon message={success} />}
       <footer className="app-footer">
