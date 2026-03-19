@@ -5,7 +5,7 @@ export function useAuth() {
   const [loggedIn, setLoggedIn] = useState<boolean>(() => isAuthenticated());
   const [authRole, setAuthRole] = useState<AuthRole | null>(() => getAuthRole());
   const [authCountry, setAuthCountry] = useState<string | null>(() => getAuthCountry());
-  const [sessionLeftMs, setSessionLeftMs] = useState<number>(0);
+  const [expiresAt, setExpiresAt] = useState<number>(() => getExpiresAt());
   const [authError, setAuthError] = useState<string | null>(null);
 
   const login = useCallback(async (username: string, password: string) => {
@@ -14,6 +14,7 @@ export function useAuth() {
       setLoggedIn(true);
       setAuthRole(getAuthRole());
       setAuthCountry(getAuthCountry());
+      setExpiresAt(getExpiresAt());
       setAuthError(null);
       return true;
     } catch (err: any) {
@@ -27,14 +28,14 @@ export function useAuth() {
     setLoggedIn(false);
     setAuthRole(null);
     setAuthCountry(null);
+    setExpiresAt(0);
   }, []);
 
+  // Timer tylko do wylogowania — bez setState co sekundę, żeby nie re-renderować App
   useEffect(() => {
     if (!loggedIn) return;
     const timer = setInterval(() => {
-      const left = getExpiresAt() - Date.now();
-      setSessionLeftMs(Math.max(0, left));
-      if (left <= 0) {
+      if (getExpiresAt() - Date.now() <= 0) {
         logout();
       }
     }, 1000);
@@ -45,7 +46,7 @@ export function useAuth() {
     loggedIn,
     authRole,
     authCountry,
-    sessionLeftMs,
+    expiresAt,
     authError,
     login,
     logout,

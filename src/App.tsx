@@ -100,13 +100,6 @@ function App() {
   // Translations
   const t = useCallback((key: TranslationKey, params?: Record<string, string | number>) => translate(language, key, params), [language]);
 
-  // Derived State
-  const sessionCountdown = useMemo(() => {
-    const totalSeconds = Math.floor(auth.sessionLeftMs / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-  }, [auth.sessionLeftMs]);
 
   // Actions
   const handleLogin = async (e: React.FormEvent) => {
@@ -117,25 +110,31 @@ function App() {
     }
   };
 
+  const { logout: authLogout } = auth;
   const handleLogout = useCallback(() => {
-    auth.logout();
+    authLogout();
     setActiveTab('customers');
-  }, [auth]);
+  }, [authLogout]);
 
-  // Data Fetching
+  // Data Fetching — destructure stable function refs to avoid re-fetch loop
+  const { fetchCustomers } = customerApi;
+  const { fetchCoupons, fetchTemplates } = couponApi;
+  const { fetchPromotions, fetchMetadata } = promoApi;
+  const { fetchTechnicalUsers } = techApi;
+
   const fetchData = useCallback(async () => {
     if (!auth.loggedIn) return;
     await Promise.all([
-      customerApi.fetchCustomers(),
-      couponApi.fetchCoupons(),
-      couponApi.fetchTemplates(),
-      promoApi.fetchPromotions(),
-      promoApi.fetchMetadata()
+      fetchCustomers(),
+      fetchCoupons(),
+      fetchTemplates(),
+      fetchPromotions(),
+      fetchMetadata(),
     ]);
     if (auth.authRole === 'ADMIN') {
-      await techApi.fetchTechnicalUsers();
+      await fetchTechnicalUsers();
     }
-  }, [auth.loggedIn, auth.authRole, customerApi, couponApi, promoApi, techApi]);
+  }, [auth.loggedIn, auth.authRole, fetchCustomers, fetchCoupons, fetchTemplates, fetchPromotions, fetchMetadata, fetchTechnicalUsers]);
 
   useEffect(() => {
     void fetchData();
@@ -247,7 +246,7 @@ function App() {
         <AppHeader
           appLogo={appLogo}
           loading={customerApi.loading || couponApi.loading || promoApi.loading || techApi.loading}
-          sessionCountdown={sessionCountdown}
+          expiresAt={auth.expiresAt}
           language={language}
           setLanguage={setLanguage}
           languageOptions={[{ value: 'pl', short: 'PL' }, { value: 'en', short: 'EN' }, { value: 'de', short: 'DE' }]}

@@ -1,11 +1,25 @@
+import { useEffect, useState } from 'react';
 import { Button, Segmented, Space, Spin, Typography } from 'antd';
 import type { Language } from '../i18n';
 import type { Theme, Translator } from '../types/ui';
 
+function SessionCountdown({ expiresAt }: { expiresAt: number }) {
+  const [leftMs, setLeftMs] = useState(() => Math.max(0, expiresAt - Date.now()));
+
+  useEffect(() => {
+    const timer = setInterval(() => setLeftMs(Math.max(0, expiresAt - Date.now())), 1000);
+    return () => clearInterval(timer);
+  }, [expiresAt]);
+
+  const minutes = Math.floor(leftMs / 60000);
+  const seconds = Math.floor((leftMs % 60000) / 1000);
+  return <>{minutes}:{seconds < 10 ? '0' : ''}{seconds}</>;
+}
+
 type AppHeaderProps = {
   appLogo: string;
   loading: boolean;
-  sessionCountdown: string;
+  expiresAt: number;
   language: Language;
   setLanguage: (value: Language) => void;
   languageOptions: { value: Language; short: string }[];
@@ -18,7 +32,7 @@ type AppHeaderProps = {
 export function AppHeader({
   appLogo,
   loading,
-  sessionCountdown,
+  expiresAt,
   language,
   setLanguage,
   languageOptions,
@@ -33,7 +47,7 @@ export function AppHeader({
       <div className="topbar-controls">
         <Space className="session-pill" size={8}>
           <Typography.Text className="session-label">{t('session')}</Typography.Text>
-          <Typography.Text strong>{sessionCountdown}</Typography.Text>
+          <Typography.Text strong><SessionCountdown expiresAt={expiresAt} /></Typography.Text>
           {loading && <Spin size="small" />}
         </Space>
         <div className="topbar-actions">
