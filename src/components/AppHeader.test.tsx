@@ -7,7 +7,7 @@ describe('AppHeader Component', () => {
   const mockProps = {
     appLogo: 'logo.png',
     loading: false,
-    sessionCountdown: '15:00',
+    expiresAt: Date.now() + 15 * 60 * 1000,
     language: 'en' as Language,
     setLanguage: vi.fn(),
     languageOptions: [
@@ -23,7 +23,8 @@ describe('AppHeader Component', () => {
   it('renders logo and session countdown', () => {
     render(<AppHeader {...mockProps} />);
     expect(screen.getByAltText('appTitle')).toBeInTheDocument();
-    expect(screen.getByText('15:00')).toBeInTheDocument();
+    // countdown shows m:ss format
+    expect(screen.getByText(/^\d+:\d{2}$/)).toBeInTheDocument();
   });
 
   it('shows loading spinner when loading is true', () => {
