@@ -17,7 +17,7 @@ export function useAuth() {
       setAuthError(null);
       return true;
     } catch (err: any) {
-      setAuthError(err.response?.data?.error || 'Login failed');
+      setAuthError(err.response?.data?.detail || 'Login failed');
       return false;
     }
   }, []);

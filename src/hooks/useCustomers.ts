@@ -38,7 +38,7 @@ export function useCustomers() {
   const addPoints = useCallback(async (customerId: string, points: number, description: string) => {
     setLoading(true);
     try {
-      await api.post(`/customers/${customerId}/points`, { points, description });
+      await api.post(`/customers/${customerId}/add-points`, { points, description });
       await fetchCustomers();
       return true;
     } catch (err: any) {

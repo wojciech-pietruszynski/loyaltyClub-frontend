@@ -77,8 +77,8 @@ function App() {
   });
   const [activeTab, setActiveTab] = useState<Tab>('customers');
   const [success, setSuccess] = useState<string | null>(null);
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
   // Business Logic Hooks
   const auth = useAuth();
@@ -440,7 +440,7 @@ function App() {
                 try {
                    const formData = new FormData();
                    formData.append('file', importFile);
-                   await api.post('/customers/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                   await api.post('/tools/import-customers', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
                    await customerApi.fetchCustomers();
                    setSuccess(t('importCustomersSuccess'));
                 } catch (err) {

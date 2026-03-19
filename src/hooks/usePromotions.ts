@@ -22,8 +22,8 @@ export function usePromotions() {
   const fetchMetadata = useCallback(async () => {
     try {
       const [countries, prefixes] = await Promise.all([
-        api.get<string[]>('/countries'),
-        api.get<string[]>('/coupon-prefixes'),
+        api.get<string[]>('/config/countries'),
+        api.get<string[]>('/config/coupon-prefixes'),
       ]);
       setAvailableCountries(countries.data);
       setAvailableCouponPrefixes(prefixes.data);

@@ -93,18 +93,27 @@ async function refreshToken(): Promise<void> {
   setSession(data);
 }
 
+const REFRESH_THRESHOLD_MS = 60_000; // refresh when less than 60s left
+
+function isTokenCloseToExpiry(): boolean {
+  const expiresAt = getExpiresAt();
+  return expiresAt > 0 && Date.now() >= expiresAt - REFRESH_THRESHOLD_MS;
+}
+
 async function ensureFreshSession(): Promise<void> {
   if (!isAuthenticated()) {
     logout();
     throw new Error('Session expired');
   }
 
-  if (!refreshPromise) {
-    refreshPromise = refreshToken().finally(() => {
-      refreshPromise = null;
-    });
+  if (isTokenCloseToExpiry()) {
+    if (!refreshPromise) {
+      refreshPromise = refreshToken().finally(() => {
+        refreshPromise = null;
+      });
+    }
+    await refreshPromise;
   }
-  await refreshPromise;
 }
 
 api.interceptors.request.use(
