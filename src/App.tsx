@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Alert, ConfigProvider, Space, Tabs, theme as antdTheme } from 'antd';
+import { Alert, ConfigProvider, theme as antdTheme } from 'antd';
+import plPL from 'antd/locale/pl_PL';
+import enUS from 'antd/locale/en_US';
+import deDE from 'antd/locale/de_DE';
 import { Percent, PlusCircle, Ticket, UserPlus, Users, Wrench } from 'lucide-react';
 
 import api from './api/client';
@@ -14,6 +17,7 @@ import { CouponsSection } from './components/CouponsSection';
 import { CustomerDetailsModal } from './components/CustomerDetailsModal';
 import { CustomersSection } from './components/CustomersSection';
 import { LoginView } from './components/LoginView';
+import { HierarchyPromotionsSection } from './components/HierarchyPromotionsSection';
 import { StorePromotionsSection } from './components/StorePromotionsSection';
 import { TechnicalAccountsSection } from './components/TechnicalAccountsSection';
 import { ToolsSection } from './components/ToolsSection';
@@ -22,22 +26,24 @@ import { ToolsSection } from './components/ToolsSection';
 import { useAuth } from './hooks/useAuth';
 import { useCustomers } from './hooks/useCustomers';
 import { useCoupons } from './hooks/useCoupons';
+import { useHierarchyPromotions } from './hooks/useHierarchyPromotions';
 import { usePromotions } from './hooks/usePromotions';
 import { useTechnicalUsers } from './hooks/useTechnicalUsers';
 
 // Types
-import type { Customer, StorePromotion, TechnicalUser } from './types';
-import { 
-  type CouponFormState, 
-  type CouponTemplateFormState, 
-  type CustomerModalTab, 
+import type { Customer, HierarchyPromotion, StorePromotion, TechnicalUser } from './types';
+import {
+  type CouponFormState,
+  type CouponTemplateFormState,
+  type CustomerModalTab,
   type CustomerEditFormState,
-  type NewCustomerFormState, 
-  type NewPointsFormState, 
-  type PromotionFormState, 
-  type Tab, 
-  type TechnicalUserFormState, 
-  type Theme 
+  type HierarchyPromotionFormState,
+  type NewCustomerFormState,
+  type NewPointsFormState,
+  type PromotionFormState,
+  type Tab,
+  type TechnicalUserFormState,
+  type Theme
 } from './types/ui';
 
 import './App.css';
@@ -85,6 +91,7 @@ function App() {
   const customerApi = useCustomers();
   const couponApi = useCoupons();
   const promoApi = usePromotions();
+  const hierarchyPromoApi = useHierarchyPromotions();
   const techApi = useTechnicalUsers();
 
   // Sync theme & language to DOM / localStorage whenever they change
@@ -120,6 +127,7 @@ function App() {
   const { fetchCustomers } = customerApi;
   const { fetchCoupons, fetchTemplates } = couponApi;
   const { fetchPromotions, fetchMetadata } = promoApi;
+  const { fetchHierarchyPromotions } = hierarchyPromoApi;
   const { fetchTechnicalUsers } = techApi;
 
   const fetchData = useCallback(async () => {
@@ -130,30 +138,32 @@ function App() {
       fetchTemplates(),
       fetchPromotions(),
       fetchMetadata(),
+      fetchHierarchyPromotions(),
     ]);
     if (auth.authRole === 'ADMIN') {
       await fetchTechnicalUsers();
     }
-  }, [auth.loggedIn, auth.authRole, fetchCustomers, fetchCoupons, fetchTemplates, fetchPromotions, fetchMetadata, fetchTechnicalUsers]);
+  }, [auth.loggedIn, auth.authRole, fetchCustomers, fetchCoupons, fetchTemplates, fetchPromotions, fetchMetadata, fetchHierarchyPromotions, fetchTechnicalUsers]);
 
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
 
-  // Tab Navigation
+  // Sidebar Navigation
   const navigationTabs = useMemo(() => {
-    const tabs: { key: Tab; label: React.ReactNode }[] = [
-      { key: 'customers', label: <Space size={6}><Users size={16} />{t('tabCustomers')}</Space> },
-      { key: 'add-customer', label: <Space size={6}><UserPlus size={16} />{t('tabAddCustomer')}</Space> },
-      { key: 'coupons', label: <Space size={6}><Ticket size={16} />{t('tabCoupons')}</Space> },
-      { key: 'tools', label: <Space size={6}><Wrench size={16} />{t('tabTools')}</Space> },
+    const tabs: { key: Tab; icon: React.ReactNode; label: string }[] = [
+      { key: 'customers', icon: <Users size={16} />, label: t('tabCustomers') },
+      { key: 'add-customer', icon: <UserPlus size={16} />, label: t('tabAddCustomer') },
+      { key: 'coupons', icon: <Ticket size={16} />, label: t('tabCoupons') },
+      { key: 'tools', icon: <Wrench size={16} />, label: t('tabTools') },
     ];
     if (auth.authRole === 'ADMIN') {
-      tabs.splice(2, 0, { key: 'add-points', label: <Space size={6}><PlusCircle size={16} />{t('tabAddPoints')}</Space> });
-      tabs.push({ key: 'technical-accounts', label: <Space size={6}><Wrench size={16} />{t('tabTechnicalAccounts')}</Space> });
+      tabs.splice(2, 0, { key: 'add-points', icon: <PlusCircle size={16} />, label: t('tabAddPoints') });
+      tabs.push({ key: 'technical-accounts', icon: <Wrench size={16} />, label: t('tabTechnicalAccounts') });
     }
     if (auth.authRole === 'ADMIN' || auth.authRole === 'TECHNICAL') {
-      tabs.push({ key: 'store-promotions', label: <Space size={6}><Percent size={16} />{t('tabStorePromotions')}</Space> });
+      tabs.push({ key: 'store-promotions', icon: <Percent size={16} />, label: t('tabStorePromotions') });
+      tabs.push({ key: 'hierarchy-promotions', icon: <Percent size={16} />, label: t('tabHierarchyPromotions') });
     }
     return tabs;
   }, [auth.authRole, t]);
@@ -175,6 +185,13 @@ function App() {
   // Promotions State
   const [promotionView, setPromotionView] = useState<'create' | 'browse' | null>(null);
   const [promotionForm, setPromotionForm] = useState<PromotionFormState>({ id: null, name: '', country: '', pointsPerCurrency: '', startsAt: '', endsAt: '', enabled: true });
+
+  // Hierarchy Promotions State
+  const [hierarchyPromotionView, setHierarchyPromotionView] = useState<'create' | 'browse' | null>(null);
+  const [hierarchyPromotionForm, setHierarchyPromotionForm] = useState<HierarchyPromotionFormState>({
+    id: null, name: '', country: '', hierarchy: '', productClass: '', subclass: '',
+    type: 'MULTIPLIER', multiplier: '', startsAt: '', endsAt: '', enabled: true,
+  });
 
   // Technical State
   const [technicalUserForm, setTechnicalUserForm] = useState<TechnicalUserFormState>({ username: '', password: '', country: '', enabled: true });
@@ -235,11 +252,14 @@ function App() {
     );
   }
 
+  const antdLocale = language === 'pl' ? plPL : language === 'de' ? deDE : enUS;
+
   return (
     <ConfigProvider
+      locale={antdLocale}
       theme={{
         algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-        token: { colorPrimary: '#6366f1', borderRadius: 10 },
+        token: { colorPrimary: '#6366f1', borderRadius: 10, zIndexPopupBase: 1200 },
       }}
     >
       <div className="container">
@@ -256,13 +276,22 @@ function App() {
           t={t}
         />
 
-        <Tabs
-          activeKey={activeTab}
-          onChange={(key) => setActiveTab(key as Tab)}
-          items={navigationTabs}
-        />
+        <div className="app-body">
+          <nav className="sidebar">
+            {navigationTabs.map(({ key, icon, label }) => (
+              <button
+                key={key}
+                className={`sidebar-nav-btn${activeTab === key ? ' active' : ''}`}
+                onClick={() => setActiveTab(key)}
+                type="button"
+              >
+                {icon}
+                {label}
+              </button>
+            ))}
+          </nav>
 
-        <div className="content">
+          <div className="content">
           {customerApi.error && <Alert style={{ marginBottom: 16 }} type="error" showIcon message={customerApi.error} />}
 
           {activeTab === 'customers' && (
@@ -393,6 +422,55 @@ function App() {
             />
           )}
 
+          {activeTab === 'hierarchy-promotions' && (
+            <HierarchyPromotionsSection
+              t={t}
+              availableCountries={promoApi.availableCountries}
+              promotionView={hierarchyPromotionView}
+              setPromotionView={setHierarchyPromotionView}
+              resetForm={() => setHierarchyPromotionForm({
+                id: null, name: '', country: '', hierarchy: '', productClass: '', subclass: '',
+                type: 'MULTIPLIER', multiplier: '', startsAt: '', endsAt: '', enabled: true,
+              })}
+              closeModal={() => setHierarchyPromotionView(null)}
+              form={hierarchyPromotionForm}
+              setForm={setHierarchyPromotionForm}
+              handleSave={async (e) => {
+                e.preventDefault();
+                if (await hierarchyPromoApi.saveHierarchyPromotion(hierarchyPromotionForm, hierarchyPromotionForm.id || undefined)) {
+                  setSuccess(t(hierarchyPromotionForm.id ? 'hierarchyPromotionUpdatedSuccess' : 'hierarchyPromotionCreatedSuccess'));
+                  setTimeout(() => setSuccess(null), 3000);
+                  setHierarchyPromotionView(null);
+                }
+              }}
+              saving={hierarchyPromoApi.loading}
+              promotions={hierarchyPromoApi.hierarchyPromotions}
+              handleEdit={(p: HierarchyPromotion) => {
+                setHierarchyPromotionForm({
+                  id: p.id,
+                  name: p.name,
+                  country: p.country,
+                  hierarchy: p.hierarchy ?? '',
+                  productClass: p.productClass ?? '',
+                  subclass: p.subclass ?? '',
+                  type: p.type,
+                  multiplier: p.multiplier != null ? p.multiplier.toString() : '',
+                  startsAt: p.startsAt.slice(0, 16),
+                  endsAt: p.endsAt ? p.endsAt.slice(0, 16) : '',
+                  enabled: p.enabled,
+                });
+                setHierarchyPromotionView('create');
+              }}
+              handleToggleStatus={async (p: HierarchyPromotion, enabled: boolean) => {
+                if (await hierarchyPromoApi.toggleHierarchyPromotion(p.id, enabled)) {
+                  setSuccess(t(enabled ? 'hierarchyPromotionEnabledSuccess' : 'hierarchyPromotionDisabledSuccess'));
+                  setTimeout(() => setSuccess(null), 3000);
+                }
+              }}
+              formatDateTime={formatDateTime}
+            />
+          )}
+
           {activeTab === 'technical-accounts' && (
             <TechnicalAccountsSection
               t={t}
@@ -460,6 +538,7 @@ function App() {
               }}
             />
           )}
+          </div>
         </div>
 
         {selectedCustomer && (

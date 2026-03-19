@@ -26,8 +26,8 @@ describe('usePromotions hook', () => {
 
   it('fetches metadata successfully', async () => {
     vi.mocked(api.get).mockImplementation((url) => {
-      if (url === '/countries') return Promise.resolve({ data: ['PL', 'EN'] });
-      if (url === '/coupon-prefixes') return Promise.resolve({ data: ['ABC'] });
+      if (url === '/config/countries') return Promise.resolve({ data: ['PL', 'EN'] });
+      if (url === '/config/coupon-prefixes') return Promise.resolve({ data: ['ABC'] });
       return Promise.reject(new Error('Unknown URL'));
     });
 

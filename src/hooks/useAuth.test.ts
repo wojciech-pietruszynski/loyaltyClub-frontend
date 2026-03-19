@@ -30,7 +30,7 @@ describe('useAuth hook', () => {
   it('handles login failure', async () => {
     vi.mocked(api.isAuthenticated).mockReturnValue(false);
     vi.mocked(api.login).mockRejectedValue({
-      response: { data: { error: 'Invalid creds' } }
+      response: { data: { detail: 'Invalid creds' } }
     });
 
     const { result } = renderHook(() => useAuth());

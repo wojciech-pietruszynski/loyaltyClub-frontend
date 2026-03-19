@@ -61,3 +61,19 @@ export interface StorePromotion {
   endsAt: string | null;
   enabled: boolean;
 }
+
+export type HierarchyPromotionType = 'MULTIPLIER' | 'EXCLUSION';
+
+export interface HierarchyPromotion {
+  id: number;
+  name: string;
+  country: string;
+  hierarchy: string | null;
+  productClass: string | null;
+  subclass: string | null;
+  type: HierarchyPromotionType;
+  multiplier: number | null;
+  startsAt: string;
+  endsAt: string | null;
+  enabled: boolean;
+}

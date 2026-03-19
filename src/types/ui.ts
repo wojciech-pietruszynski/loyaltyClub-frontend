@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { Language, TranslationKey } from '../i18n';
 
-export type Tab = 'customers' | 'add-points' | 'coupons' | 'add-customer' | 'store-promotions' | 'tools' | 'technical-accounts';
+export type Tab = 'customers' | 'add-points' | 'coupons' | 'add-customer' | 'store-promotions' | 'hierarchy-promotions' | 'tools' | 'technical-accounts';
 export type CustomerModalTab = 'profile' | 'balance' | 'issue-coupon' | 'coupon-history';
 export type Theme = 'light' | 'dark';
 
@@ -22,6 +22,20 @@ export type PromotionFormState = {
   name: string;
   country: string;
   pointsPerCurrency: string;
+  startsAt: string;
+  endsAt: string;
+  enabled: boolean;
+};
+
+export type HierarchyPromotionFormState = {
+  id: number | null;
+  name: string;
+  country: string;
+  hierarchy: string;
+  productClass: string;
+  subclass: string;
+  type: 'MULTIPLIER' | 'EXCLUSION';
+  multiplier: string;
   startsAt: string;
   endsAt: string;
   enabled: boolean;
