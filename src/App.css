@@ -154,8 +154,13 @@ body {
   color: var(--text);
 }
 
+.input option {
+  background-color: var(--card-bg);
+  color: var(--text);
+}
+
 .points-badge {
-  background: #e0e7ff;
+  background: rgb(99 102 241 / 15%);
   color: var(--primary);
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;

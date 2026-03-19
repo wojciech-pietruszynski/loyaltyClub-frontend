@@ -1,4 +1,6 @@
 import type { FormEvent, KeyboardEvent } from 'react';
+import { DatePicker } from 'antd';
+import dayjs from 'dayjs';
 import { PenSquare, X } from 'lucide-react';
 import type { StorePromotion } from '../types';
 import type { PromotionFormState, StateSetter, Translator } from '../types/ui';
@@ -138,21 +140,25 @@ export function StorePromotionsSection({
               </div>
               <div className="form-group">
                 <label>{t('promotionStartsAt')}</label>
-                <input
-                  className="input"
-                  type="datetime-local"
-                  value={promotionForm.startsAt}
-                  onChange={(event) => setPromotionForm((prev) => ({ ...prev, startsAt: event.target.value }))}
-                  required
+                <DatePicker
+                  showTime={{ format: 'HH:mm' }}
+                  format="YYYY-MM-DD HH:mm"
+                  value={promotionForm.startsAt ? dayjs(promotionForm.startsAt) : null}
+                  onChange={(date) => setPromotionForm((prev) => ({ ...prev, startsAt: date ? date.format('YYYY-MM-DDTHH:mm') : '' }))}
+                  style={{ width: '100%' }}
+                  needConfirm={false}
                 />
               </div>
               <div className="form-group">
                 <label>{t('promotionEndsAt')}</label>
-                <input
-                  className="input"
-                  type="datetime-local"
-                  value={promotionForm.endsAt}
-                  onChange={(event) => setPromotionForm((prev) => ({ ...prev, endsAt: event.target.value }))}
+                <DatePicker
+                  showTime={{ format: 'HH:mm' }}
+                  format="YYYY-MM-DD HH:mm"
+                  value={promotionForm.endsAt ? dayjs(promotionForm.endsAt) : null}
+                  onChange={(date) => setPromotionForm((prev) => ({ ...prev, endsAt: date ? date.format('YYYY-MM-DDTHH:mm') : '' }))}
+                  style={{ width: '100%' }}
+                  needConfirm={false}
+                  allowClear
                 />
               </div>
               <div className="form-actions">

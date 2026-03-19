@@ -378,8 +378,8 @@ function App() {
                   name: p.name,
                   country: p.country,
                   pointsPerCurrency: p.pointsPerCurrency.toString(),
-                  startsAt: p.startsAt.split('T')[0],
-                  endsAt: p.endsAt ? p.endsAt.split('T')[0] : '',
+                  startsAt: p.startsAt.slice(0, 16),
+                  endsAt: p.endsAt ? p.endsAt.slice(0, 16) : '',
                   enabled: p.enabled
                 });
                 setPromotionView('create');
