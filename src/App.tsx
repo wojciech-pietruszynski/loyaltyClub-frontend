@@ -87,6 +87,16 @@ function App() {
   const promoApi = usePromotions();
   const techApi = useTechnicalUsers();
 
+  // Sync theme & language to DOM / localStorage whenever they change
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    window.localStorage.setItem('app_theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    window.localStorage.setItem('app_language', language);
+  }, [language]);
+
   // Translations
   const t = useCallback((key: TranslationKey, params?: Record<string, string | number>) => translate(language, key, params), [language]);
 
