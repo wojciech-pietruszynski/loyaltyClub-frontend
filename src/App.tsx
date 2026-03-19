@@ -3,14 +3,13 @@ import { Alert, ConfigProvider, theme as antdTheme } from 'antd';
 import plPL from 'antd/locale/pl_PL';
 import enUS from 'antd/locale/en_US';
 import deDE from 'antd/locale/de_DE';
-import { Percent, PlusCircle, Ticket, UserPlus, Users, Wrench } from 'lucide-react';
+import { Percent, PlusCircle, Ticket, Users, Wrench } from 'lucide-react';
 
 import api from './api/client';
 import { translate, type Language, type TranslationKey } from './i18n';
 import appLogo from './assets/logo.png';
 
 // Components
-import { AddCustomerSection } from './components/AddCustomerSection';
 import { AddPointsSection } from './components/AddPointsSection';
 import { AppHeader } from './components/AppHeader';
 import { CouponsSection } from './components/CouponsSection';
@@ -19,7 +18,6 @@ import { CustomersSection } from './components/CustomersSection';
 import { LoginView } from './components/LoginView';
 import { HierarchyPromotionsSection } from './components/HierarchyPromotionsSection';
 import { StorePromotionsSection } from './components/StorePromotionsSection';
-import { TechnicalAccountsSection } from './components/TechnicalAccountsSection';
 import { ToolsSection } from './components/ToolsSection';
 
 // Hooks
@@ -153,20 +151,21 @@ function App() {
   const navigationTabs = useMemo(() => {
     const tabs: { key: Tab; icon: React.ReactNode; label: string }[] = [
       { key: 'customers', icon: <Users size={16} />, label: t('tabCustomers') },
-      { key: 'add-customer', icon: <UserPlus size={16} />, label: t('tabAddCustomer') },
       { key: 'coupons', icon: <Ticket size={16} />, label: t('tabCoupons') },
-      { key: 'tools', icon: <Wrench size={16} />, label: t('tabTools') },
+      { key: 'tools', icon: <Wrench size={16} />, label: t('tabAdminTools') },
     ];
     if (auth.authRole === 'ADMIN') {
-      tabs.splice(2, 0, { key: 'add-points', icon: <PlusCircle size={16} />, label: t('tabAddPoints') });
-      tabs.push({ key: 'technical-accounts', icon: <Wrench size={16} />, label: t('tabTechnicalAccounts') });
+      tabs.splice(1, 0, { key: 'add-points', icon: <PlusCircle size={16} />, label: t('tabAddPoints') });
     }
     if (auth.authRole === 'ADMIN' || auth.authRole === 'TECHNICAL') {
-      tabs.push({ key: 'store-promotions', icon: <Percent size={16} />, label: t('tabStorePromotions') });
-      tabs.push({ key: 'hierarchy-promotions', icon: <Percent size={16} />, label: t('tabHierarchyPromotions') });
+      tabs.splice(tabs.length - 1, 0, { key: 'promotions', icon: <Percent size={16} />, label: t('tabPromotions') });
     }
     return tabs;
   }, [auth.authRole, t]);
+
+  // View State
+  const [customerView, setCustomerView] = useState<'browse' | 'add' | null>(null);
+  const [toolView, setToolView] = useState<'technical' | 'import' | null>(null);
 
   // Forms State
   const [newCustomer, setNewCustomer] = useState<NewCustomerFormState>({ firstName: '', lastName: '', email: '', customerNumber: '', phoneNumber: '', country: '' });
@@ -295,12 +294,12 @@ function App() {
           {customerApi.error && <Alert style={{ marginBottom: 16 }} type="error" showIcon message={customerApi.error} />}
 
           {activeTab === 'customers' && (
-            <CustomersSection customers={customerApi.customers} t={t} openCustomerModal={openCustomerModal} />
-          )}
-
-          {activeTab === 'add-customer' && (
-            <AddCustomerSection
+            <CustomersSection
+              customers={customerApi.customers}
               t={t}
+              openCustomerModal={openCustomerModal}
+              customerView={customerView}
+              setCustomerView={setCustomerView}
               newCustomer={newCustomer}
               setNewCustomer={setNewCustomer}
               availableCountries={promoApi.availableCountries}
@@ -310,6 +309,7 @@ function App() {
                   setSuccess(t('customerAddedSuccess'));
                   setTimeout(() => setSuccess(null), 3000);
                   setNewCustomer({ firstName: '', lastName: '', email: '', customerNumber: '', phoneNumber: '', country: '' });
+                  setCustomerView(null);
                 }
               }}
             />
@@ -380,100 +380,98 @@ function App() {
             />
           )}
 
-          {activeTab === 'store-promotions' && (
-            <StorePromotionsSection
-              t={t}
-              availableCountries={promoApi.availableCountries}
-              promotionView={promotionView}
-              setPromotionView={setPromotionView}
-              resetPromotionForm={() => setPromotionForm({ id: null, name: '', country: '', pointsPerCurrency: '', startsAt: '', endsAt: '', enabled: true })}
-              closePromotionModal={() => setPromotionView(null)}
-              promotionForm={promotionForm}
-              setPromotionForm={setPromotionForm}
-              handleSavePromotion={async (e) => {
-                e.preventDefault();
-                if (await promoApi.savePromotion(promotionForm, promotionForm.id || undefined)) {
-                  setSuccess(t(promotionForm.id ? 'promotionUpdatedSuccess' : 'promotionCreatedSuccess'));
-                  setTimeout(() => setSuccess(null), 3000);
-                  setPromotionView(null);
-                }
-              }}
-              promotionSaving={promoApi.loading}
-              storePromotions={promoApi.storePromotions}
-              handleEditPromotion={(p: StorePromotion) => {
-                setPromotionForm({
-                  id: p.id,
-                  name: p.name,
-                  country: p.country,
-                  pointsPerCurrency: p.pointsPerCurrency.toString(),
-                  startsAt: p.startsAt.slice(0, 16),
-                  endsAt: p.endsAt ? p.endsAt.slice(0, 16) : '',
-                  enabled: p.enabled
-                });
-                setPromotionView('create');
-              }}
-              handleTogglePromotionStatus={async (p: StorePromotion, enabled: boolean) => {
-                if (await promoApi.togglePromotion(p.id, enabled)) {
-                  setSuccess(t(enabled ? 'promotionEnabledSuccess' : 'promotionDisabledSuccess'));
-                  setTimeout(() => setSuccess(null), 3000);
-                }
-              }}
-              formatDateTime={formatDateTime}
-            />
+          {activeTab === 'promotions' && (
+            <>
+              <StorePromotionsSection
+                t={t}
+                availableCountries={promoApi.availableCountries}
+                promotionView={promotionView}
+                setPromotionView={setPromotionView}
+                resetPromotionForm={() => setPromotionForm({ id: null, name: '', country: '', pointsPerCurrency: '', startsAt: '', endsAt: '', enabled: true })}
+                closePromotionModal={() => setPromotionView(null)}
+                promotionForm={promotionForm}
+                setPromotionForm={setPromotionForm}
+                handleSavePromotion={async (e) => {
+                  e.preventDefault();
+                  if (await promoApi.savePromotion(promotionForm, promotionForm.id || undefined)) {
+                    setSuccess(t(promotionForm.id ? 'promotionUpdatedSuccess' : 'promotionCreatedSuccess'));
+                    setTimeout(() => setSuccess(null), 3000);
+                    setPromotionView(null);
+                  }
+                }}
+                promotionSaving={promoApi.loading}
+                storePromotions={promoApi.storePromotions}
+                handleEditPromotion={(p: StorePromotion) => {
+                  setPromotionForm({ id: p.id, name: p.name, country: p.country, pointsPerCurrency: p.pointsPerCurrency.toString(), startsAt: p.startsAt.slice(0, 16), endsAt: p.endsAt ? p.endsAt.slice(0, 16) : '', enabled: p.enabled });
+                  setPromotionView('create');
+                }}
+                handleTogglePromotionStatus={async (p: StorePromotion, enabled: boolean) => {
+                  if (await promoApi.togglePromotion(p.id, enabled)) {
+                    setSuccess(t(enabled ? 'promotionEnabledSuccess' : 'promotionDisabledSuccess'));
+                    setTimeout(() => setSuccess(null), 3000);
+                  }
+                }}
+                formatDateTime={formatDateTime}
+              />
+              <HierarchyPromotionsSection
+                t={t}
+                availableCountries={promoApi.availableCountries}
+                promotionView={hierarchyPromotionView}
+                setPromotionView={setHierarchyPromotionView}
+                resetForm={() => setHierarchyPromotionForm({ id: null, name: '', country: '', hierarchy: '', productClass: '', subclass: '', type: 'MULTIPLIER', multiplier: '', startsAt: '', endsAt: '', enabled: true })}
+                closeModal={() => setHierarchyPromotionView(null)}
+                form={hierarchyPromotionForm}
+                setForm={setHierarchyPromotionForm}
+                handleSave={async (e) => {
+                  e.preventDefault();
+                  if (await hierarchyPromoApi.saveHierarchyPromotion(hierarchyPromotionForm, hierarchyPromotionForm.id || undefined)) {
+                    setSuccess(t(hierarchyPromotionForm.id ? 'hierarchyPromotionUpdatedSuccess' : 'hierarchyPromotionCreatedSuccess'));
+                    setTimeout(() => setSuccess(null), 3000);
+                    setHierarchyPromotionView(null);
+                  }
+                }}
+                saving={hierarchyPromoApi.loading}
+                promotions={hierarchyPromoApi.hierarchyPromotions}
+                handleEdit={(p: HierarchyPromotion) => {
+                  setHierarchyPromotionForm({ id: p.id, name: p.name, country: p.country, hierarchy: p.hierarchy ?? '', productClass: p.productClass ?? '', subclass: p.subclass ?? '', type: p.type, multiplier: p.multiplier != null ? p.multiplier.toString() : '', startsAt: p.startsAt.slice(0, 16), endsAt: p.endsAt ? p.endsAt.slice(0, 16) : '', enabled: p.enabled });
+                  setHierarchyPromotionView('create');
+                }}
+                handleToggleStatus={async (p: HierarchyPromotion, enabled: boolean) => {
+                  if (await hierarchyPromoApi.toggleHierarchyPromotion(p.id, enabled)) {
+                    setSuccess(t(enabled ? 'hierarchyPromotionEnabledSuccess' : 'hierarchyPromotionDisabledSuccess'));
+                    setTimeout(() => setSuccess(null), 3000);
+                  }
+                }}
+                formatDateTime={formatDateTime}
+              />
+            </>
           )}
 
-          {activeTab === 'hierarchy-promotions' && (
-            <HierarchyPromotionsSection
+          {activeTab === 'tools' && (
+            <ToolsSection
               t={t}
-              availableCountries={promoApi.availableCountries}
-              promotionView={hierarchyPromotionView}
-              setPromotionView={setHierarchyPromotionView}
-              resetForm={() => setHierarchyPromotionForm({
-                id: null, name: '', country: '', hierarchy: '', productClass: '', subclass: '',
-                type: 'MULTIPLIER', multiplier: '', startsAt: '', endsAt: '', enabled: true,
-              })}
-              closeModal={() => setHierarchyPromotionView(null)}
-              form={hierarchyPromotionForm}
-              setForm={setHierarchyPromotionForm}
-              handleSave={async (e) => {
+              toolView={toolView}
+              setToolView={setToolView}
+              isAdmin={auth.authRole === 'ADMIN'}
+              importing={importing}
+              setImportFile={setImportFile}
+              handleImportCustomers={async (e) => {
                 e.preventDefault();
-                if (await hierarchyPromoApi.saveHierarchyPromotion(hierarchyPromotionForm, hierarchyPromotionForm.id || undefined)) {
-                  setSuccess(t(hierarchyPromotionForm.id ? 'hierarchyPromotionUpdatedSuccess' : 'hierarchyPromotionCreatedSuccess'));
-                  setTimeout(() => setSuccess(null), 3000);
-                  setHierarchyPromotionView(null);
+                if (!importFile) return;
+                setImporting(true);
+                try {
+                  const formData = new FormData();
+                  formData.append('file', importFile);
+                  await api.post('/tools/import-customers', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                  await customerApi.fetchCustomers();
+                  setSuccess(t('importCustomersSuccess'));
+                  setToolView(null);
+                } catch (err) {
+                  customerApi.setError(extractApiError(err, t('importCustomersError')));
+                } finally {
+                  setImporting(false);
                 }
               }}
-              saving={hierarchyPromoApi.loading}
-              promotions={hierarchyPromoApi.hierarchyPromotions}
-              handleEdit={(p: HierarchyPromotion) => {
-                setHierarchyPromotionForm({
-                  id: p.id,
-                  name: p.name,
-                  country: p.country,
-                  hierarchy: p.hierarchy ?? '',
-                  productClass: p.productClass ?? '',
-                  subclass: p.subclass ?? '',
-                  type: p.type,
-                  multiplier: p.multiplier != null ? p.multiplier.toString() : '',
-                  startsAt: p.startsAt.slice(0, 16),
-                  endsAt: p.endsAt ? p.endsAt.slice(0, 16) : '',
-                  enabled: p.enabled,
-                });
-                setHierarchyPromotionView('create');
-              }}
-              handleToggleStatus={async (p: HierarchyPromotion, enabled: boolean) => {
-                if (await hierarchyPromoApi.toggleHierarchyPromotion(p.id, enabled)) {
-                  setSuccess(t(enabled ? 'hierarchyPromotionEnabledSuccess' : 'hierarchyPromotionDisabledSuccess'));
-                  setTimeout(() => setSuccess(null), 3000);
-                }
-              }}
-              formatDateTime={formatDateTime}
-            />
-          )}
-
-          {activeTab === 'technical-accounts' && (
-            <TechnicalAccountsSection
-              t={t}
               availableCountries={promoApi.availableCountries}
               technicalUserForm={technicalUserForm}
               setTechnicalUserForm={setTechnicalUserForm}
@@ -489,7 +487,7 @@ function App() {
               technicalUsers={techApi.technicalUsers}
               handleToggleTechnicalUser={async (id, enabled) => {
                 if (await techApi.toggleTechnicalUser(id, enabled)) {
-                  setSuccess(t(enabled ? 'promotionEnabledSuccess' : 'promotionDisabledSuccess')); // Using promotion translations as fallback for now
+                  setSuccess(t(enabled ? 'promotionEnabledSuccess' : 'promotionDisabledSuccess'));
                   setTimeout(() => setSuccess(null), 3000);
                 }
               }}
@@ -499,41 +497,13 @@ function App() {
               setTechnicalPasswordValue={setTechnicalPasswordValue}
               technicalPasswordVisible={technicalPasswordVisible}
               setTechnicalPasswordVisible={setTechnicalPasswordVisible}
-              closeTechnicalPasswordModal={() => {
-                setTechnicalPasswordModalUser(null);
-                setTechnicalPasswordValue('');
-                setTechnicalPasswordVisible(false);
-              }}
+              closeTechnicalPasswordModal={() => { setTechnicalPasswordModalUser(null); setTechnicalPasswordValue(''); setTechnicalPasswordVisible(false); }}
               handleUpdateTechnicalUserPassword={async (id, pwd) => {
                 if (await techApi.updatePassword(id, pwd)) {
                   setSuccess(t('technicalUserPasswordUpdated'));
                   setTimeout(() => setSuccess(null), 3000);
                   setTechnicalPasswordModalUser(null);
                   setTechnicalPasswordValue('');
-                }
-              }}
-            />
-          )}
-          
-          {activeTab === 'tools' && (
-            <ToolsSection
-              t={t}
-              importing={importing}
-              setImportFile={setImportFile}
-              handleImportCustomers={async (e) => {
-                e.preventDefault();
-                if (!importFile) return;
-                setImporting(true);
-                try {
-                   const formData = new FormData();
-                   formData.append('file', importFile);
-                   await api.post('/tools/import-customers', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-                   await customerApi.fetchCustomers();
-                   setSuccess(t('importCustomersSuccess'));
-                } catch (err) {
-                   customerApi.setError(extractApiError(err, t('importCustomersError')));
-                } finally {
-                   setImporting(false);
                 }
               }}
             />
