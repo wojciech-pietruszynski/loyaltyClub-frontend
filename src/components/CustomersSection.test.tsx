@@ -21,7 +21,7 @@ describe('CustomersSection Component', () => {
     t: (key: string) => key,
     openCustomerModal: vi.fn(),
     setCustomerView: vi.fn(),
-    newCustomer: { firstName: '', lastName: '', email: '', customerNumber: '', phoneNumber: '', country: '' },
+    newCustomer: { firstName: '', lastName: '', email: '', customerNumber: '', phoneNumber: '', country: '', referrerCustomerNumber: '' },
     setNewCustomer: vi.fn(),
     availableCountries: ['PL'],
     handleAddCustomer: vi.fn(async (e: any) => e.preventDefault()),

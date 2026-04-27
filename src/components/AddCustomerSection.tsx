@@ -32,6 +32,15 @@ export function AddCustomerSection({
             {availableCountries.map((countryCode) => (<option key={countryCode} value={countryCode}>{countryCode}</option>))}
           </select>
         </div>
+        <div className="form-group">
+          <label htmlFor="referrerCustomerNumber">{t('referrerCustomerNumber')}</label>
+          <input
+            id="referrerCustomerNumber"
+            className="input"
+            value={newCustomer.referrerCustomerNumber}
+            onChange={(event) => setNewCustomer({ ...newCustomer, referrerCustomerNumber: event.target.value })}
+          />
+        </div>
         <div className="form-actions">
           <button className="btn btn-primary" type="submit">{t('addCustomer')}</button>
         </div>

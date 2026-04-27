@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { Language, TranslationKey } from '../i18n';
 
-export type Tab = 'customers' | 'add-points' | 'coupons' | 'promotions' | 'tools';
+export type Tab = 'customers' | 'add-points' | 'coupons' | 'promotions' | 'reports' | 'tools';
 export type CustomerModalTab = 'profile' | 'balance' | 'issue-coupon' | 'coupon-history';
 export type Theme = 'light' | 'dark';
 
@@ -55,6 +55,7 @@ export type NewCustomerFormState = {
   customerNumber: string;
   phoneNumber: string;
   country: string;
+  referrerCustomerNumber: string;
 };
 
 export type NewPointsFormState = {

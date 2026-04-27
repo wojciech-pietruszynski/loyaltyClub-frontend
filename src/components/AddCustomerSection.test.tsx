@@ -12,6 +12,7 @@ describe('AddCustomerSection Component', () => {
       customerNumber: '',
       phoneNumber: '',
       country: '',
+      referrerCustomerNumber: '',
     },
     setNewCustomer: vi.fn(),
     availableCountries: ['PL', 'EN'],

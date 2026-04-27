@@ -7,6 +7,8 @@ export interface Customer {
   phoneNumber: string;
   country: string;
   loyaltyPoints: number;
+  loyaltyTierCode?: string;
+  referralCode?: string | null;
 }
 
 export interface Coupon {

@@ -89,6 +89,8 @@ export function CustomersSection({
                       <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('phone')}</th>
                       <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('country')}</th>
                       <th style={{ textAlign: 'right', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('points')}</th>
+                      <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('loyaltyTier')}</th>
+                      <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('referralCodeShort')}</th>
                       <th style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }} />
                     </tr>
                   </thead>
@@ -102,6 +104,8 @@ export function CustomersSection({
                         <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{customer.phoneNumber}</td>
                         <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{customer.country}</td>
                         <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem', textAlign: 'right' }}>{customer.loyaltyPoints}</td>
+                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{customer.loyaltyTierCode ?? '—'}</td>
+                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{customer.referralCode ?? '—'}</td>
                         <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem', textAlign: 'center' }}>
                           <button
                             className="btn icon-btn"
@@ -154,6 +158,16 @@ export function CustomersSection({
                   <option value="">{t('selectCountry')}</option>
                   {availableCountries.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="referrerCustomerNumber">{t('referrerCustomerNumber')}</label>
+                <input
+                  id="referrerCustomerNumber"
+                  className="input"
+                  value={newCustomer.referrerCustomerNumber}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, referrerCustomerNumber: e.target.value })}
+                  placeholder=""
+                />
               </div>
               <div className="form-actions">
                 <button className="btn btn-primary" type="submit">{t('addCustomer')}</button>

@@ -3,7 +3,7 @@ import { Alert, ConfigProvider, theme as antdTheme } from 'antd';
 import plPL from 'antd/locale/pl_PL';
 import enUS from 'antd/locale/en_US';
 import deDE from 'antd/locale/de_DE';
-import { Percent, PlusCircle, Ticket, Users, Wrench } from 'lucide-react';
+import { BarChart3, Percent, PlusCircle, Ticket, Users, Wrench } from 'lucide-react';
 
 import api from './api/client';
 import { translate, type Language, type TranslationKey } from './i18n';
@@ -18,6 +18,7 @@ import { CustomersSection } from './components/CustomersSection';
 import { LoginView } from './components/LoginView';
 import { HierarchyPromotionsSection } from './components/HierarchyPromotionsSection';
 import { StorePromotionsSection } from './components/StorePromotionsSection';
+import { ReportsAuditSection } from './components/ReportsAuditSection';
 import { ToolsSection } from './components/ToolsSection';
 
 // Hooks
@@ -159,6 +160,7 @@ function App() {
     }
     if (auth.authRole === 'ADMIN' || auth.authRole === 'TECHNICAL') {
       tabs.splice(tabs.length - 1, 0, { key: 'promotions', icon: <Percent size={16} />, label: t('tabPromotions') });
+      tabs.splice(tabs.length - 1, 0, { key: 'reports', icon: <BarChart3 size={16} />, label: t('tabReports') });
     }
     return tabs;
   }, [auth.authRole, t]);
@@ -168,7 +170,7 @@ function App() {
   const [toolView, setToolView] = useState<'technical' | 'import' | null>(null);
 
   // Forms State
-  const [newCustomer, setNewCustomer] = useState<NewCustomerFormState>({ firstName: '', lastName: '', email: '', customerNumber: '', phoneNumber: '', country: '' });
+  const [newCustomer, setNewCustomer] = useState<NewCustomerFormState>({ firstName: '', lastName: '', email: '', customerNumber: '', phoneNumber: '', country: '', referrerCustomerNumber: '' });
   const [newPoints, setNewPoints] = useState<NewPointsFormState>({ customerId: '', points: 0, description: t('purchaseProducts') });
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
@@ -308,7 +310,7 @@ function App() {
                 if (await customerApi.addCustomer(newCustomer)) {
                   setSuccess(t('customerAddedSuccess'));
                   setTimeout(() => setSuccess(null), 3000);
-                  setNewCustomer({ firstName: '', lastName: '', email: '', customerNumber: '', phoneNumber: '', country: '' });
+                  setNewCustomer({ firstName: '', lastName: '', email: '', customerNumber: '', phoneNumber: '', country: '', referrerCustomerNumber: '' });
                   setCustomerView(null);
                 }
               }}
@@ -445,6 +447,10 @@ function App() {
                 formatDateTime={formatDateTime}
               />
             </>
+          )}
+
+          {activeTab === 'reports' && (
+            <ReportsAuditSection t={t} isAdmin={auth.authRole === 'ADMIN'} />
           )}
 
           {activeTab === 'tools' && (
