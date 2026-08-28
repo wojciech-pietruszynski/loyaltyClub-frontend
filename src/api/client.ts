@@ -15,15 +15,19 @@ type AuthResponse = {
   country: string | null;
 };
 
+// Backend jest wdrazany osobno. Puste = ten sam origin (dev: proxy Vite,
+// prod: reverse proxy). Inaczej pelny adres API, np. https://api.example.com
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+
 const authApi = axios.create({
-  baseURL: '/api/admin/auth',
+  baseURL: `${API_BASE_URL}/api/admin/auth`,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 const api = axios.create({
-  baseURL: '/api/admin',
+  baseURL: `${API_BASE_URL}/api/admin`,
   headers: {
     'Content-Type': 'application/json',
   },

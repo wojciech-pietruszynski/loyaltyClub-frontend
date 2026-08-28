@@ -1,73 +1,96 @@
-# React + TypeScript + Vite
+# LoyaltyClub — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Panel administracyjny programu lojalnościowego **LoyaltyClub** — React 19 + TypeScript + Vite.
+Aplikacja SPA konsumująca REST API backendu (Spring Boot), które żyje w osobnym repozytorium:
+[`loyalytyClub`](https://github.com/wojciech-pietruszynski/loyalytyClub).
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Stos technologiczny
 
-## React Compiler
+| Technologia | Wersja | Rola |
+|-------------|--------|------|
+| React | 19.2 | Framework UI |
+| TypeScript | 5.9 (strict) | Typowanie statyczne |
+| Vite | 7.3 | Build tool / serwer deweloperski |
+| Ant Design | 5.27 | Biblioteka komponentów |
+| Axios | 1.13 | Klient HTTP |
+| Vitest | 3.2 | Testy jednostkowe |
+| @testing-library/react | 16.3 | Testy komponentów |
+| lucide-react | — | Ikony |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## Uruchomienie
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Wymagania
+- Node.js 20+
+- Uruchomiony backend LoyaltyClub (domyślnie `http://localhost:8089`)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Instalacja i dev server
+```bash
+npm ci
+cp .env.example .env    # opcjonalnie — domyślne wartości wystarczą lokalnie
+npm run dev
+```
+Vite startuje na porcie **5173** i przekierowuje żądania `/api` na backend.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Komendy
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Komenda | Opis |
+|---------|------|
+| `npm run dev` | Serwer deweloperski z HMR |
+| `npm run build` | `tsc -b && vite build` → katalog `dist/` |
+| `npm run preview` | Podgląd builda produkcyjnego |
+| `npm test` | Testy jednostkowe (Vitest) |
+| `npm run lint` | ESLint |
+
+---
+
+## Konfiguracja
+
+Zmienne środowiskowe (wzorzec w `.env.example`):
+
+| Zmienna | Domyślnie | Opis |
+|---------|-----------|------|
+| `VITE_API_BASE_URL` | *(puste)* | Bazowy adres backendu wbudowywany w build produkcyjny. Puste = ten sam origin co SPA (wariant z reverse proxy kierującym `/api` na backend). |
+| `VITE_DEV_API_PROXY` | `http://localhost:8089` | Cel proxy `/api` dla serwera deweloperskiego Vite. |
+
+---
+
+## Wdrożenie
+
+`npm run build` produkuje statyczne pliki w `dist/`. Serwuj je dowolnym serwerem
+statycznym (nginx, Caddy, CDN).
+
+Backend musi być osiągalny pod ścieżką `/api` z perspektywy przeglądarki — albo przez
+reverse proxy na tym samym origin (wtedy `VITE_API_BASE_URL` zostaje puste), albo przez
+podanie pełnego adresu w `VITE_API_BASE_URL` (wtedy backend musi zezwalać na CORS
+dla origin frontendu).
+
+---
+
+## Struktura projektu
+
+```
+src/
+├── api/client.ts          ← Axios + storage sesji + interceptory JWT
+├── components/            ← Komponenty prezentacyjne (PascalCase.tsx)
+├── hooks/                 ← Logika biznesowa (useXxx.ts)
+├── types/                 ← Typy domenowe i UI
+├── i18n/                  ← Tłumaczenia PL / EN / DE
+├── test/setup.ts          ← Globalne mocki (localStorage, matchMedia)
+├── assets/                ← Obrazy, logo
+├── App.tsx                ← Główny komponent, routing zakładkowy
+└── App.css                ← Style globalne + zmienne CSS
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Standardy kodowania obowiązujące w tym repozytorium: [`docs/frontend_rules.md`](docs/frontend_rules.md).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Autoryzacja
+
+Logowanie przez `POST /api/admin/auth/login`. Token JWT (ważność 15 minut) trzymany
+w `localStorage` i automatycznie odświeżany, gdy pozostało mniej niż 60 sekund.
+Role: `ADMIN` (pełny dostęp) oraz `TECHNICAL` (ograniczony do jednego kraju).

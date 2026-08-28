@@ -7,7 +7,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://localhost:8089'
+      // Backend zyje w osobnym repozytorium — adres nadpisywalny przez env.
+      '/api': process.env.VITE_DEV_API_PROXY || 'http://localhost:8089'
     }
   },
   test: {
