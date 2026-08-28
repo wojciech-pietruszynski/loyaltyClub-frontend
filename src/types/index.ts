@@ -79,3 +79,20 @@ export interface HierarchyPromotion {
   endsAt: string | null;
   enabled: boolean;
 }
+
+export interface ReportsSummary {
+  scope: string;
+  customerCount: number;
+  totalLoyaltyPoints: number;
+  transactionsLast30Days: number;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  timestamp: string;
+  username: string;
+  role: string;
+  action: string;
+  resourceType: string;
+  resourceId: string | null;
+}
