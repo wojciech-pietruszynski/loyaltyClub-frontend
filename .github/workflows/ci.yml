@@ -1,9 +1,10 @@
 name: CI
 
-# Bramka jakości: analizator statyczny, kontrola typów, testy i budowanie
-# muszą przejść, zanim zmiana trafi na gałąź główną. Do tej pory polecenie
-# `npm run lint` kończyło się niepowodzeniem, a mimo to nic nie blokowało
-# wydania — budowanie i testy przechodziły.
+# Bramka jakosci i obraz kontenera. Analizator statyczny, kontrola typow,
+# testy oraz budowanie produkcyjne wykonuja sie w kontenerze zbudowanym
+# z Dockerfile w korzeniu repozytorium - dokladnie tym samym, ktorego uzywa
+# potok wdrozeniowy. Dzieki temu "przechodzi na CI" i "przechodzi przy
+# wdrozeniu" znacza to samo, niezaleznie od wersji Node na maszynie CI.
 
 on:
   push:
@@ -11,40 +12,143 @@ on:
   pull_request:
     branches: [master]
 
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
 jobs:
   quality:
-    name: Lint, typy, testy, build
+    name: Analizator, typy, testy
     runs-on: ubuntu-latest
 
     steps:
       - name: Pobranie kodu
         uses: actions/checkout@v4
 
-      - name: Node.js 20
-        uses: actions/setup-node@v4
+      - name: Przygotowanie Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Bramka jakosci w kontenerze
+        uses: docker/build-push-action@v6
         with:
-          node-version: '20'
-          cache: npm
-
-      - name: Instalacja zależności
-        run: npm ci
-
-      - name: Analizator statyczny
-        run: npm run lint
-
-      - name: Kontrola typów
-        run: npm run typecheck
-
-      - name: Testy jednostkowe z pokryciem
-        run: npm run test:coverage
-
-      - name: Budowanie produkcyjne
-        run: npm run build
+          context: .
+          target: ci-reports
+          # Cel ci-reports kopiuje raport pokrycia z etapu ci do katalogu
+          # roboczego; samo powodzenie budowania oznacza, ze lint, typecheck
+          # i testy przeszly.
+          outputs: type=local,dest=./ci-out
+          cache-from: type=gha,scope=frontend-ci
+          cache-to: type=gha,mode=max,scope=frontend-ci
 
       - name: Raport pokrycia
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage
-          path: coverage/
+          path: ci-out/coverage/
           retention-days: 7
+          # Gdy bramka przewroci sie na analizatorze, raportu po prostu nie ma;
+          # brak pliku nie moze byc druga przyczyna niepowodzenia.
+          if-no-files-found: ignore
+
+  image:
+    name: Obraz kontenera
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Wymagane do wypchniecia obrazu do GitHub Container Registry.
+      packages: write
+
+    steps:
+      - name: Pobranie kodu
+        uses: actions/checkout@v4
+
+      - name: Przygotowanie Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Znaczniki obrazu
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Budowanie obrazu
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          # VITE_API_BASE_URL puste: SPA odpytuje wlasny origin, a nginx
+          # w obrazie przekazuje /api do backendu. Ten sam artefakt dziala
+          # wtedy pod dowolna domena.
+          build-args: |
+            VITE_API_BASE_URL=
+          # Obraz musi trafic do lokalnego demona, zeby ponizszy test dymny
+          # mial co uruchomic.
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=frontend-image
+          cache-to: type=gha,mode=max,scope=frontend-image
+
+      - name: Test dymny obrazu
+        run: |
+          set -euo pipefail
+          # Bez backendu w sieci sprawdzamy sam serwer statyczny: sonde
+          # kontenera, strone glowna i awaryjne przejscie routingu SPA.
+          tag="$(printf '%s\n' '${{ steps.meta.outputs.tags }}' | head -n 1)"
+          docker run -d --name smoke -p 8080:8080 "$tag"
+
+          for _ in $(seq 1 30); do
+            if [ "$(docker inspect -f '{{.State.Health.Status}}' smoke)" = healthy ]; then
+              break
+            fi
+            # Kontener, ktory sie wywrocil, nie stanie sie healthy.
+            if [ "$(docker inspect -f '{{.State.Running}}' smoke)" != true ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$(docker inspect -f '{{.State.Health.Status}}' smoke)" != healthy ]; then
+            docker logs smoke
+            echo "BLAD: kontener nie zglosil gotowosci."
+            exit 1
+          fi
+
+          curl -fsS -o /dev/null http://localhost:8080/
+          # Sciezka obslugiwana przez react-router musi zwrocic aplikacje,
+          # a nie 404 - inaczej odswiezenie podstrony psuje sie po wdrozeniu.
+          curl -fsS -o /dev/null http://localhost:8080/customers
+          echo "Test dymny zaliczony."
+
+      - name: Sprzatanie
+        if: always()
+        run: docker rm -f smoke || true
+
+      - name: Logowanie do GHCR
+        # Rejestr zasilamy wylacznie z galezi glownej; przebiegi dla zadan
+        # scalenia maja tylko zweryfikowac, ze obraz sie buduje.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wypchniecie obrazu
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          build-args: |
+            VITE_API_BASE_URL=
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=frontend-image

@@ -1,0 +1,81 @@
+# Szablon konfiguracji nginx dla SPA LoyaltyClub.
+#
+# Wejscie kontenera nginx podmienia ${BACKEND_ORIGIN} na wartosc zmiennej
+# srodowiskowej (envsubst) i zapisuje wynik do /etc/nginx/conf.d/default.conf.
+# Zmienne nginx ($uri, $host, ...) nie sa zmiennymi srodowiskowymi, wiec
+# zostaja nietkniete.
+
+# Wbudowany DNS Dockera. Adres upstreamu jest podstawiany przez zmienna
+# (patrz proxy_pass nizej), wiec nazwa kontenera backendu rozwiazywana jest
+# przy zadaniu, a nie przy wczytywaniu konfiguracji. Bez tego nginx nie
+# wstalby, gdyby frontend uruchomil sie przed backendem.
+resolver ${NGINX_RESOLVER} valid=10s ipv6=off;
+
+server {
+    listen 8080;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Import klientow idzie multipartem; domyslny 1 MB bywa za maly.
+    client_max_body_size 20m;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/javascript application/json
+               image/svg+xml application/xml;
+
+    # Sonda kontenera - nie dotyka backendu, odpowiada za sam serwer statyczny.
+    location = /healthz {
+        access_log off;
+        add_header Content-Type text/plain;
+        return 200 "ok\n";
+    }
+
+    # API backendu pod tym samym originem co SPA. Dzieki temu przegladarka
+    # nie wykonuje zadan miedzydomenowych, a VITE_API_BASE_URL moze zostac
+    # puste i CORS po stronie backendu jest zbedny.
+    location /api/ {
+        set $upstream ${BACKEND_ORIGIN};
+        # Przy proxy_pass ze zmienna nginx nie doklada oryginalnej sciezki
+        # samoczynnie - stad jawne $request_uri.
+        proxy_pass $upstream$request_uri;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection        "";
+
+        proxy_connect_timeout 5s;
+        proxy_send_timeout    60s;
+        # Raporty i import potrafia liczyc sie dluzej niz domyslne 60s.
+        proxy_read_timeout    120s;
+
+        # Odpowiedzi API nie moga trafic do zadnego cache posredniego.
+        proxy_buffering off;
+    }
+
+    # Zasoby budowane przez Vite maja skrot tresci w nazwie, wiec moga byc
+    # cache'owane bezterminowo.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # index.html nigdy nie moze byc cache'owany - inaczej po wdrozeniu
+    # przegladarka odpytuje o nieistniejace juz pliki z poprzedniej wersji.
+    location = /index.html {
+        add_header Cache-Control "no-store";
+    }
+
+    # Routing po stronie klienta (react-router): kazda nieznana sciezka
+    # dostaje aplikacje, a nie 404.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

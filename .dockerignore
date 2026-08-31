@@ -1,0 +1,29 @@
+# Kontekst budowania ma zawierac wylacznie zrodla i manifesty.
+
+.git
+.gitignore
+.idea
+.github
+
+# Odtwarzane w obrazie.
+node_modules
+dist
+dist-ssr
+coverage
+*.log
+
+# Konfiguracja lokalna - w obrazie decyduje argument budowania
+# VITE_API_BASE_URL, a nie plik z dysku dewelopera.
+.env
+.env.*
+!.env.example
+
+# Dokumentacja i materialy pomocnicze.
+README.md
+fixes_frontend.md
+docs/
+scripts/
+
+Dockerfile
+.dockerignore
+docker-compose*.yml

@@ -1,0 +1,39 @@
+# Warstwa prezentacji LoyaltyClub: SPA za nginxem.
+#
+# Nginx serwuje zbudowane statyki i przekazuje /api do kontenera backendu po
+# sieci "loyaltyclub-net". Ta siec powstaje razem z compose backendu i tutaj
+# jest dolaczana jako zewnetrzna - stad kolejnosc: najpierw backend, potem
+# ten plik.
+#
+#   docker compose up -d --build        (albo scripts/stack.ps1 up)
+
+name: loyaltyclub-frontend
+
+services:
+  frontend:
+    build:
+      context: .
+      target: runtime
+      args:
+        # Puste = zadania ida na ten sam origin co SPA i laduja w nginxie
+        # ponizej, ktory przekazuje je do backendu. Ustawiac tylko wtedy,
+        # gdy API ma stac pod wlasna domena.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    image: ${FRONTEND_IMAGE:-loyaltyclub/frontend}:${IMAGE_TAG:-local}
+    container_name: loyalty-frontend
+    restart: unless-stopped
+    environment:
+      # Nazwa kontenera backendu w sieci loyaltyclub-net; rozwiazuje ja DNS
+      # Dockera przy kazdym zadaniu (patrz docker/nginx.conf.template).
+      BACKEND_ORIGIN: ${BACKEND_ORIGIN:-http://loyalty-backend:8089}
+      NGINX_RESOLVER: ${NGINX_RESOLVER:-127.0.0.11}
+    ports:
+      - "${FRONTEND_HOST_PORT:-8080}:8080"
+    networks:
+      - loyaltyclub
+
+networks:
+  loyaltyclub:
+    name: loyaltyclub-net
+    # Siec nalezy do wdrozenia backendu; frontend tylko sie do niej podlacza.
+    external: true
