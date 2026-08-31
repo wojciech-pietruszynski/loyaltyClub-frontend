@@ -1,0 +1,50 @@
+name: CI
+
+# Bramka jakości: analizator statyczny, kontrola typów, testy i budowanie
+# muszą przejść, zanim zmiana trafi na gałąź główną. Do tej pory polecenie
+# `npm run lint` kończyło się niepowodzeniem, a mimo to nic nie blokowało
+# wydania — budowanie i testy przechodziły.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  quality:
+    name: Lint, typy, testy, build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Pobranie kodu
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalacja zależności
+        run: npm ci
+
+      - name: Analizator statyczny
+        run: npm run lint
+
+      - name: Kontrola typów
+        run: npm run typecheck
+
+      - name: Testy jednostkowe z pokryciem
+        run: npm run test:coverage
+
+      - name: Budowanie produkcyjne
+        run: npm run build
+
+      - name: Raport pokrycia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7

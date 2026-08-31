@@ -12,14 +12,21 @@
 | Vitest | 3 | Testy jednostkowe |
 | @testing-library/react | 16 | Testy komponentów |
 | lucide-react | – | Ikony |
+| react-router-dom | 7 | Routing (HashRouter) |
+| dayjs | 1.x | Daty w komponentach Ant Design |
 
 **Komendy:**
 ```bash
-npm run dev      # dev server (proxy → localhost:8089)
-npm run build    # tsc -b && vite build
-npm run test     # vitest run
-npm run lint     # eslint .
+npm run dev            # dev server (proxy → localhost:8089)
+npm run build          # tsc -b && vite build
+npm run typecheck      # tsc -b --noEmit
+npm run test           # vitest run
+npm run test:coverage  # vitest run --coverage
+npm run lint           # eslint .
 ```
+
+Wszystkie cztery — `lint`, `typecheck`, `test:coverage`, `build` — są bramką
+jakości w potoku CI (`.github/workflows/ci.yml`) i muszą przechodzić.
 
 ---
 
@@ -28,21 +35,33 @@ npm run lint     # eslint .
 ```
 src/
 ├── api/
-│   └── client.ts          ← konfiguracja axios, auth storage, interceptory
+│   ├── client.ts          ← konfiguracja axios, auth storage, interceptory
+│   ├── errors.ts          ← extractApiError() — jedno miejsce odczytu ProblemDetail
+│   └── schema.ts          ← walidacja kształtu odpowiedzi w czasie działania
 ├── components/            ← komponenty prezentacyjne (PascalCase.tsx)
+├── context/
+│   ├── appContext.ts      ← typ kontekstu + useAppContext()
+│   └── AppProvider.tsx    ← dostawca: i18n, sesja, konfiguracja, hooki dziedzinowe
 ├── hooks/                 ← logika biznesowa (useXxx.ts)
+├── lib/
+│   ├── numbers.ts         ← konwersja pól liczbowych na granicy wysyłki
+│   └── validation.ts      ← walidacja formularzy po stronie klienta
 ├── types/
 │   ├── index.ts           ← typy domenowe (Customer, Coupon, StorePromotion...)
 │   └── ui.ts              ← typy UI (Tab, Theme, Translator, FormState...)
 ├── i18n/
-│   ├── index.ts           ← funkcja translate()
+│   ├── index.ts           ← translate() i translatePlural()
+│   ├── format.ts          ← Intl: daty, liczby, waluty, liczba mnoga
 │   ├── pl.ts              ← tłumaczenia PL (domyślny)
 │   ├── en.ts              ← tłumaczenia EN
 │   └── de.ts              ← tłumaczenia DE
 ├── test/
-│   └── setup.ts           ← globalne mocki (localStorage, matchMedia)
+│   ├── setup.ts           ← globalne mocki (localStorage, matchMedia)
+│   ├── fixtures.ts        ← dane testowe zgodne z kontraktem backendu
+│   └── harness.tsx        ← renderWithApp() — render w kontekście aplikacji
 ├── assets/                ← obrazy, logo
-├── App.tsx                ← główny komponent, routing tabowy, stan globalny
+├── routes.ts              ← definicje tras i ich dostępność wg roli
+├── App.tsx                ← złożenie: ustawienia UI, sesja, dostawca, powłoka
 └── App.css                ← globalne style + CSS variables
 ```
 
@@ -52,7 +71,7 @@ src/
 
 | Element | Konwencja | Przykład |
 |---------|-----------|---------|
-| Pliki komponentów | `PascalCase.tsx` | `AddCustomerSection.tsx` |
+| Pliki komponentów | `PascalCase.tsx` | `CustomersSection.tsx` |
 | Pliki hooków | `camelCase.ts` z prefixem `use` | `useCustomers.ts` |
 | Pliki typów | `camelCase.ts` | `index.ts`, `ui.ts` |
 | Interfejsy/typy TS | `PascalCase` | `Customer`, `Tab`, `AuthRole` |
@@ -60,30 +79,37 @@ src/
 | Stałe | `UPPER_SNAKE_CASE` | `REFRESH_THRESHOLD_MS`, `TOKEN_KEY` |
 | Klasy CSS | `kebab-case` | `.modal-overlay`, `.btn-primary` |
 | Handlery zdarzeń | prefix `handle` | `handleLogin`, `handleAddCustomer` |
-| Settery stanu | prefix `set` | `setNewCustomer`, `setActiveTab` |
+| Settery stanu | prefix `set` | `setNewCustomer`, `setView` |
 
 ---
 
 ## 4. Komponenty
 
 **Zasady:**
-- Tylko **funkcyjne komponenty** — żadnych klas
+- Tylko **funkcyjne komponenty** — jedyny wyjątek to `ErrorBoundary`,
+  bo React nie ma odpowiednika `componentDidCatch` w komponencie funkcyjnym
 - Props zawsze jawnie typowane interfejsem lub typem:
   ```tsx
   type MyComponentProps = {
-    t: Translator;
-    items: Customer[];
+    customer: Customer;
     onSelect: (id: number) => void;
   };
 
-  export function MyComponent({ t, items, onSelect }: MyComponentProps) {
+  export function MyComponent({ customer, onSelect }: MyComponentProps) {
+    const { t, format } = useAppContext();
     return (...);
   }
   ```
 - Eksport: **named export** (nie default export)
-- Komponenty są **prezentacyjne** — nie wywołują API bezpośrednio, dostają dane i handlery jako props
-- Logikę biznesową i stan: przesuwaj do hooków (`useCustomers`, `useCoupons` itp.)
-- Nie przekazuj całego stanu aplikacji do komponentów — tylko to, czego potrzebuje dany komponent
+- Komponenty są **prezentacyjne** — nigdy nie importują klienta HTTP; dostęp do sieci
+  wyłącznie przez hooki dziedzinowe
+- Logikę biznesową i stan serwera: przesuwaj do hooków (`useCustomers`, `useCoupons` itp.)
+- Rzeczy przekrojowe (`t`, formatowanie, sesja, lista krajów, powiadomienia, hooki
+  dziedzinowe) bierz z **kontekstu** przez `useAppContext()`, nie z właściwości
+- Stan formularza trzyma komponent, który go renderuje — nie orkiestrator
+- Właściwości zostają dla tego, co jest specyficzne dla wywołania (np. `customer`, `onClose`)
+- Modale buduj na `ModalShell` — dokłada wymagania WCAG (fokus, Escape, powrót fokusu)
+- Błędy walidacji renderuj przez `FieldMessage`
 
 ---
 
@@ -91,34 +117,46 @@ src/
 
 **Struktura hooka:**
 ```ts
-export function useCustomers() {
+export function useCustomers(t: Translator): CustomersApi {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toMessage = useApiErrorMessage(t);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get<Customer[]>('/customers');
-      setCustomers(data);
+      const { data } = await api.get<unknown>('/customers');
+      setCustomers(parseList('/customers', data, isCustomer));
       setError(null);
     } catch (err: unknown) {
-      setError(extractApiError(err, 'Failed to fetch customers'));
+      setError(toMessage(err, 'fetchCustomersError'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toMessage]);
 
-  return { customers, loading, error, fetchCustomers };
+  // Pobranie odroczone — sekcja woła je przy wejściu na trasę, wykonuje się raz.
+  const ensureCustomers = useEnsure(fetchCustomers);
+
+  return { customers, loading, error, fetchCustomers, ensureCustomers };
 }
 ```
 
 **Zasady:**
 - Każdy hook zwraca **obiekt** z polami (nie tablicę, chyba że to `useState`)
+- Każdy hook ma jawnie wyeksportowany typ zwracany (`CustomersApi`, `CouponsApi`, ...)
+- Hook przyjmuje `t: Translator` i zamienia wyjątki na komunikaty przez
+  `useApiErrorMessage(t)` — nigdy nie wpisuj stałego tekstu komunikatu
 - Trójka stanów dla operacji async: `loading`, `error`, `data`
-- `useCallback` dla funkcji przekazywanych do komponentów lub używanych w `useEffect`
-- Nie używaj zewnętrznego store (Redux, Zustand) — stan zarządzany hookami i `useState` w App
-- `useEffect` z prawidłową tablicą zależności
+- Odpowiedzi przepuszczaj przez `parseList` / `parseObject` z `api/schema.ts`
+- Pola liczbowe formularzy konwertuj przy wysyłce (`lib/numbers.ts`)
+- Zmiana samej flagi (włącz/wyłącz) = aktualizacja optymistyczna z wycofaniem,
+  bez ponownego pobierania całej kolekcji
+- Do każdego pobrania kolekcji dorzuć wariant `ensure...` (`useEnsure`) — sekcje
+  wołają go przy wejściu na trasę, dane pobierają się raz
+- Nie używaj zewnętrznego store (Redux, Zustand) — stan współdzielony idzie przez kontekst
+- `useEffect` z prawidłową tablicą zależności; **bez** `setState` w ciele efektu
 
 ---
 
@@ -132,23 +170,31 @@ const api = axios.create({ baseURL: '/api/admin' });           // wszystkie pozo
 
 **Interceptory:**
 - **Request**: dołącza `Authorization: Bearer {token}` + wywołuje `ensureFreshSession()`
-- **Response**: przy 401 wywołuje `logout()` i odświeża stronę
+- **Response**: przy 401 wywołuje `logout()` i przekazuje błąd dalej
+  (bez przeładowania strony — widok logowania pokazuje `App` po zmianie stanu sesji)
 
 **Zasady:**
 - Prefiks bazowy pochodzi z `VITE_API_BASE_URL` (domyślnie puste = ten sam origin)
 - W devie ścieżki `/api` idą przez proxy Vite (`VITE_DEV_API_PROXY`, domyślnie `http://localhost:8089`)
 - Nie hardkoduj `http://localhost:...` w kodzie — adres backendu wyłącznie przez zmienne env
-- Błędy API wyciągaj przez `extractApiError(err, fallback)`:
+- Błędy API wyciągaj **wyłącznie** przez `extractApiError(err, fallback)` z
+  `src/api/errors.ts` — nie powielaj wyrażenia `err.response?.data?.detail`
+  w hookach. W hookach używaj opakowania `useApiErrorMessage(t)`, które
+  jako tekst zapasowy bierze klucz słownika:
   ```ts
-  function extractApiError(err: unknown, fallback: string): string {
-    if (err && typeof err === 'object' && 'response' in err) {
-      const apiErr = err as { response?: { data?: { detail?: string } }; message?: string };
-      return apiErr.response?.data?.detail || fallback;
-    }
-    return fallback;
-  }
+  const toMessage = useApiErrorMessage(t);
+  setError(toMessage(err, 'fetchCustomersError'));
   ```
-- Pole błędu z backendu: `response.data.detail` (format RFC 7807 ProblemDetail)
+- Pole błędu z backendu: `response.data.detail` (format RFC 7807 ProblemDetail);
+  kolejność zapasowa: `detail` → `title` → `error` → `message` → tekst z klucza
+- Kształt odpowiedzi sprawdzaj w `src/api/schema.ts`. Parametr generyczny
+  (`api.get<Customer[]>`) jest kontraktem tylko kompilacyjnym i znika po
+  transpilacji, więc każda odpowiedź przechodzi przez predykat:
+  ```ts
+  const { data } = await api.get<unknown>('/customers');
+  setCustomers(parseList('/customers', data, isCustomer));
+  ```
+  Niezgodny kształt daje `ResponseShapeError`, tłumaczony na `invalidServerResponse`.
 
 ---
 
@@ -175,16 +221,21 @@ auth_country     ← kod kraju lub null
 
 ## 8. Routing i nawigacja
 
-- Brak zewnętrznego routera (React Router nie jest używany)
-- Nawigacja przez stan `activeTab: Tab` w `App.tsx`
-- Zakładki renderowane przez komponent `<Tabs>` z Ant Design
+- **React Router 7**, wariant `HashRouter` (`src/main.tsx`). Hash, nie ścieżka:
+  `dist/` jest serwowane jako statyczne pliki, więc odświeżenie adresu `/coupons`
+  bez przepisywania żądań na `index.html` kończyłoby się błędem 404
+- Adres jest źródłem prawdy o aktywnym widoku: `#/customers`, `#/coupons`, ...
+  Odnośnik do widoku da się wysłać, cofanie działa, odświeżenie nie gubi widoku
+- Definicje tras i ich dostępność wg roli: `src/routes.ts`
+- Nawigacja: `<NavLink>` w `AppShell` (klasa `.sidebar-nav-btn`, stan `.active`
+  z `isActive`) — **nie** komponent `<Tabs>` z Ant Design
+- Każda sekcja jest ładowana leniwie (`React.lazy`), więc trasa = osobna porcja kodu
 - Typ zakładek:
   ```ts
-  export type Tab =
-    | 'customers' | 'add-points' | 'coupons' | 'add-customer'
-    | 'store-promotions' | 'tools' | 'technical-accounts';
+  export type Tab = 'customers' | 'add-points' | 'coupons' | 'promotions' | 'reports' | 'tools';
   ```
-- Nowe funkcje = nowa wartość w unii `Tab`
+- Nowa funkcja = nowa wartość w unii `Tab` + wpis w `ROUTES` + wpis
+  w `SECTION_BY_TAB` i `ICON_BY_TAB` w `AppShell.tsx`
 
 ---
 
@@ -193,7 +244,9 @@ auth_country     ← kod kraju lub null
 **Konfiguracja:** `strict: true`, `noUnusedLocals: true`, `noUnusedParameters: true`
 
 **Zasady:**
-- Nigdy nie używaj `any` — preferuj `unknown` z type guard lub konkretny typ
+- Nigdy nie używaj `any` — preferuj `unknown` z type guard lub konkretny typ.
+  Reguła jest egzekwowana: `npm run lint` musi kończyć się bez błędów, a CI
+  blokuje zmianę, która ją łamie. Dotyczy również plików testowych
 - Wszystkie props, state, return types hooków — jawnie typowane
 - Typy domenowe w `src/types/index.ts`
 - Typy UI/formularzy w `src/types/ui.ts`
@@ -257,10 +310,21 @@ t('pointsAdded', { count: 100 })  // "Dodano 100 punktów"
 ```
 
 **Zasady:**
-- Wszystkie teksty widoczne dla użytkownika przez `t(key)` — **bez** hardkodowanych stringów UI
-- Nowe teksty: dodaj klucz do `TranslationKey`, następnie do `pl.ts`, `en.ts`, `de.ts`
-- Język przechowywany w `localStorage` klucz `app_language`
+- Wszystkie teksty widoczne dla użytkownika przez `t(key)` — **bez** hardkodowanych
+  stringów UI, również w komunikatach błędów hooków
+- Nowe teksty: dodaj klucz do `pl.ts` (źródło typu `TranslationKey`), potem do `en.ts` i `de.ts`
+- Język przechowywany w `localStorage` klucz `app_language`; atrybut `lang`
+  dokumentu jest ustawiany razem z wyborem języka
 - Parametry w tłumaczeniach: `{{paramName}}` w stringu
+- **Liczba mnoga**: klucze z sufiksami `_one` / `_few` / `_many` / `_other`
+  i `tPlural(key, count)`. Polski wymaga formy trójstopniowej, więc samo
+  `{{count}}` w jednym łańcuchu nie wystarcza — kategorię wybiera `Intl.PluralRules`
+- **Daty, liczby, waluty**: wyłącznie przez `format` z kontekstu
+  (`formatDate`, `formatDateTime`, `formatNumber`, `formatCurrency`).
+  Nigdy `toLocaleString()` bez lokalizacji — postać zależałaby od ustawień
+  przeglądarki, a nie od języka wybranego w aplikacji
+- Odwzorowanie języka na lokalizację: `localeByLanguage` w `types/ui.ts`;
+  waluty krajów: `currencyByCountry` w `i18n/format.ts`
 
 ---
 
@@ -283,9 +347,15 @@ setTimeout(() => setSuccess(null), 3_000);
 
 **Zasady:**
 - Błędy: Ant Design `<Alert type="error">` — nigdy `alert()` przeglądarki
-- Sukcesy: `<Alert type="success">` z `setTimeout` 3000ms
-- Pole błędu: zawsze `err.response?.data?.detail` (ProblemDetail z backendu)
-- Fallback błędu: czytelny tekst w języku angielskim jako drugi argument `extractApiError`
+- Powiadomienia globalne: `notifySuccess(...)` / `notifyError(...)` z kontekstu;
+  znikają samoczynnie po 3 sekundach (`AppProvider` pilnuje licznika)
+- Pole błędu: zawsze `extractApiError` (ProblemDetail z backendu)
+- Tekst zapasowy: **klucz słownika**, nie stały łańcuch po angielsku
+- Wyjątek renderowania przechwytuje `ErrorBoundary` nad powłoką i nad widokiem
+  logowania — użytkownik dostaje komunikat, nie biały ekran
+- Walidacja formularzy: reguły z `lib/validation.ts` wołane w handlerze `submit`,
+  komunikat pod polem przez `FieldMessage`. Atrybuty HTML (`required`,
+  `type="email"`) to za mało — nie znają reguł biznesowych
 
 ---
 
@@ -297,28 +367,28 @@ setTimeout(() => setSuccess(null), 3_000);
 
 **Szablon testu komponentu:**
 ```tsx
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import { renderWithApp } from '../test/harness';
+import { makeCustomer } from '../test/fixtures';
 
 describe('MyComponent', () => {
-  const mockProps = {
-    t: (key: string) => key,
-    items: [],
-    onSelect: vi.fn(),
-  };
-
-  it('renders correctly', () => {
-    render(<MyComponent {...mockProps} />);
+  it('renders the list from the context', () => {
+    renderWithApp(<MyComponent />, { customers: { customers: [makeCustomer()] } });
     expect(screen.getByText('someKey')).toBeInTheDocument();
   });
 
-  it('calls handler on click', () => {
-    render(<MyComponent {...mockProps} />);
-    fireEvent.click(screen.getByRole('button'));
-    expect(mockProps.onSelect).toHaveBeenCalled();
+  it('calls the hook action', () => {
+    const { context } = renderWithApp(<MyComponent />);
+    fireEvent.click(screen.getByRole('button', { name: 'save' }));
+    expect(context.data.customers.addCustomer).toHaveBeenCalled();
   });
 });
 ```
+
+`renderWithApp` renderuje komponent w `MemoryRouter` i w kontekście aplikacji;
+`t` zwraca sam klucz, a `tPlural` klucz z liczbą (`customersFound:3`), więc testy
+sprawdzają, *który* komunikat trafia na ekran, nie jego brzmienie w danym języku.
 
 **Szablon testu hooka:**
 ```ts
@@ -341,8 +411,13 @@ describe('useMyHook', () => {
 **Zasady:**
 - Mocki w `src/test/setup.ts`: `localStorage`, `matchMedia` (wymagane przez Ant Design)
 - Mockuj `src/api/client.ts` w testach hooków używając `vi.mock`
+- Atrapy odpowiedzi buduj z `src/test/fixtures.ts` — odpowiedzi są sprawdzane
+  w czasie działania, więc atrapa `{ id: 1 }` udaje kontrakt, którego backend
+  nigdy nie zwraca, i test przestaje cokolwiek znaczyć
+- Testy hooków wołają je z translatorem: `renderHook(() => useCustomers(t))`
 - Nie testuj implementacji — testuj zachowanie z perspektywy użytkownika
-- Wykluczone z pokrycia: `src/main.tsx`, `src/api/client.ts`
+- Wykluczone z pokrycia: `src/main.tsx`, `src/api/client.ts`, `src/test/**`,
+  `src/types/**`, słowniki `src/i18n/{pl,en,de}.ts`
 - `beforeEach(() => vi.clearAllMocks())` w każdym suite
 
 ---
@@ -367,5 +442,24 @@ export default defineConfig({
 **Zasady:**
 - Domyślny port backendu: `8089` (konfiguracja Spring Boot `server.port`)
 - Build produkcyjny: `tsc -b && vite build` — TypeScript sprawdzany przed bundlem
-- Pliki wynikowe: `dist/` — serwowane osobno (nginx / CDN), backend ich już nie pakuje
+- Pliki wynikowe: `dist/` — serwowane osobno (nginx / CDN), backend ich już nie pakuje.
+  Dzięki `React.lazy` każda trasa dostaje własną porcję kodu
 - Nowe zmienne env: prefiks `VITE_`, deklaracja typu w `src/vite-env.d.ts`, wpis w `.env.example`
+- `dist/` i `coverage/` są pomijane przez ESLint (`globalIgnores`) — wcześniej
+  analizator zgłaszał ostrzeżenia z wygenerowanych plików raportu pokrycia
+
+---
+
+## 15. Bramka jakości (CI)
+
+`.github/workflows/ci.yml` uruchamia na każdym pushu i pull requeście do `master`:
+
+1. `npm ci`
+2. `npm run lint` — zero błędów i zero ostrzeżeń
+3. `npm run typecheck`
+4. `npm run test:coverage` — raport trafia do artefaktów przebiegu
+5. `npm run build`
+
+Żaden z kroków nie jest opcjonalny. Zmiana z czerwonym analizatorem nie wejdzie
+na gałąź główną — wcześniej budowanie i testy przechodziły niezależnie od tego,
+czy `npm run lint` się powiódł.

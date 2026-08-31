@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Button, Segmented, Space, Spin, Typography } from 'antd';
+import { useAppContext } from '../context/appContext';
 import type { Language } from '../i18n';
-import type { Theme, Translator } from '../types/ui';
+
+const LANGUAGE_OPTIONS: { value: Language; short: string }[] = [
+  { value: 'pl', short: 'PL' },
+  { value: 'en', short: 'EN' },
+  { value: 'de', short: 'DE' },
+];
 
 function SessionCountdown({ expiresAt }: { expiresAt: number }) {
   const [leftMs, setLeftMs] = useState(() => Math.max(0, expiresAt - Date.now()));
@@ -19,50 +25,38 @@ function SessionCountdown({ expiresAt }: { expiresAt: number }) {
 type AppHeaderProps = {
   appLogo: string;
   loading: boolean;
-  expiresAt: number;
-  language: Language;
-  setLanguage: (value: Language) => void;
-  languageOptions: { value: Language; short: string }[];
-  theme: Theme;
-  setTheme: (value: Theme) => void;
-  handleLogout: () => void;
-  t: Translator;
 };
 
-export function AppHeader({
-  appLogo,
-  loading,
-  expiresAt,
-  language,
-  setLanguage,
-  languageOptions,
-  theme,
-  setTheme,
-  handleLogout,
-  t,
-}: AppHeaderProps) {
+export function AppHeader({ appLogo, loading }: AppHeaderProps) {
+  const { t, language, setLanguage, theme, setTheme, session } = useAppContext();
+
   return (
     <header className="header">
       <img className="app-logo" src={appLogo} alt={t('appTitle')} />
       <div className="topbar-controls">
         <Space className="session-pill" size={8}>
           <Typography.Text className="session-label">{t('session')}</Typography.Text>
-          <Typography.Text strong><SessionCountdown expiresAt={expiresAt} /></Typography.Text>
+          <Typography.Text strong><SessionCountdown expiresAt={session.expiresAt} /></Typography.Text>
           {loading && <Spin size="small" />}
+        </Space>
+        {/* Kod kraju z sesji — do tej pory zapisywany, lecz nieużywany. */}
+        <Space className="session-pill" size={8}>
+          <Typography.Text className="session-label">{t('countryScope')}</Typography.Text>
+          <Typography.Text strong>{session.country ?? t('countryScopeGlobal')}</Typography.Text>
         </Space>
         <div className="topbar-actions">
           <div className="control-group">
             <span className="control-label">{t('changeLanguage')}</span>
             <Segmented
               value={language}
-              options={languageOptions.map((option) => ({ value: option.value, label: option.short }))}
+              options={LANGUAGE_OPTIONS.map((option) => ({ value: option.value, label: option.short }))}
               onChange={(value) => setLanguage(value as Language)}
             />
           </div>
           <Button type="default" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
             {theme === 'light' ? t('darkMode') : t('lightMode')}
           </Button>
-          <Button type="default" onClick={handleLogout}>{t('logout')}</Button>
+          <Button type="default" onClick={session.logout}>{t('logout')}</Button>
         </div>
       </div>
     </header>

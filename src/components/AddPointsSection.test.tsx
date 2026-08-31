@@ -1,59 +1,54 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AddPointsSection } from './AddPointsSection';
+import { renderWithApp } from '../test/harness';
+import { makeCustomer } from '../test/fixtures';
 
-describe('AddPointsSection Component', () => {
-  const mockProps = {
-    t: (key: string) => key,
-    newPoints: {
-      customerId: '',
-      points: 0,
-      description: 'Purchase',
-    },
-    setNewPoints: vi.fn(),
-    customers: [
-      { id: '1', firstName: 'Jan', lastName: 'Kowalski', customerNumber: 'C001' } as any
-    ],
-    handleAddPoints: vi.fn(async (e) => e.preventDefault()),
-  };
+const customers = [makeCustomer({ id: 1, firstName: 'Jan', lastName: 'Kowalski', customerNumber: 'C001' })];
 
+describe('AddPointsSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders form elements', () => {
-    render(<AddPointsSection {...mockProps} />);
-    expect(screen.getByText('tabAddPoints')).toBeInTheDocument();
+  it('renders the form with the customer list', () => {
+    renderWithApp(<AddPointsSection />, { customers: { customers } });
     expect(screen.getByLabelText('chooseCustomer')).toBeInTheDocument();
-    expect(screen.getByLabelText('pointsCount')).toBeInTheDocument();
+    expect(screen.getByText('Jan Kowalski (C001)')).toBeInTheDocument();
   });
 
-  it('updates state on select change', () => {
-    render(<AddPointsSection {...mockProps} />);
-    const select = screen.getByLabelText('chooseCustomer');
-    fireEvent.change(select, { target: { value: '1' } });
-    expect(mockProps.setNewPoints).toHaveBeenCalledWith({
-      ...mockProps.newPoints,
-      customerId: '1',
-    });
+  it('fetches customers on entering the route', () => {
+    const { context } = renderWithApp(<AddPointsSection />, { customers: { customers } });
+    expect(context.data.customers.ensureCustomers).toHaveBeenCalled();
   });
 
-  it('updates state on points change', () => {
-    render(<AddPointsSection {...mockProps} />);
-    const pointsInput = screen.getByLabelText('pointsCount');
-    fireEvent.change(pointsInput, { target: { value: '50' } });
-    expect(mockProps.setNewPoints).toHaveBeenCalledWith({
-      ...mockProps.newPoints,
-      points: 50,
-    });
+  it('sends the point count as typed in the field', async () => {
+    const { context } = renderWithApp(<AddPointsSection />, { customers: { customers } });
+
+    fireEvent.change(screen.getByLabelText('chooseCustomer'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('pointsCount'), { target: { value: '150' } });
+    fireEvent.click(screen.getByRole('button', { name: 'addPointsAction' }));
+
+    await waitFor(() => expect(context.data.customers.addPoints).toHaveBeenCalledWith('1', '150', 'purchaseProducts'));
   });
 
-  it('calls handleAddPoints on submit', () => {
-    const { container } = render(<AddPointsSection {...mockProps} />);
-    const form = container.querySelector('form');
-    if (form) {
-      fireEvent.submit(form);
-    }
-    expect(mockProps.handleAddPoints).toHaveBeenCalled();
+  it('blocks a submit with no customer and no point count', () => {
+    const { context } = renderWithApp(<AddPointsSection />, { customers: { customers } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'addPointsAction' }));
+
+    expect(context.data.customers.addPoints).not.toHaveBeenCalled();
+    expect(screen.getAllByText('validationRequired').length).toBeGreaterThan(0);
+  });
+
+  it('rejects a non-positive point count', () => {
+    const { context } = renderWithApp(<AddPointsSection />, { customers: { customers } });
+
+    fireEvent.change(screen.getByLabelText('chooseCustomer'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('pointsCount'), { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('button', { name: 'addPointsAction' }));
+
+    expect(context.data.customers.addPoints).not.toHaveBeenCalled();
+    expect(screen.getByText('validationPositive')).toBeInTheDocument();
   });
 });

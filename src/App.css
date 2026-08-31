@@ -81,7 +81,14 @@ body {
   font-size: 0.9rem;
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
+  box-sizing: border-box;
   transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-nav-btn:hover,
+.sidebar-nav-btn.active {
+  text-decoration: none;
 }
 
 .sidebar-nav-btn:hover {
@@ -229,6 +236,23 @@ body {
 .error-msg {
   color: var(--error);
   margin-top: 1rem;
+}
+
+/* Komunikat walidacji pod polem formularza */
+.field-error {
+  color: var(--error);
+  font-size: 0.82rem;
+  margin-top: 0.25rem;
+}
+
+/* Stronicowanie kartoteki klientów */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
 }
 
 .success-msg {

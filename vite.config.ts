@@ -21,7 +21,10 @@ export default defineConfig({
       exclude: [
         ...configDefaults.coverage.exclude || [],
         'src/main.tsx',
-        'src/api/client.ts', // Partial coverage already
+        'src/api/client.ts',   // pokryty osobnym zestawem testów
+        'src/test/**',         // atrapy i harness testowy
+        'src/types/**',        // same deklaracje typów
+        'src/i18n/{pl,en,de}.ts', // słowniki tłumaczeń
       ],
     },
   },

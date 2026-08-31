@@ -1,37 +1,30 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { CustomerBalancePanel } from './CustomerBalancePanel';
+import { renderWithApp } from '../test/harness';
+import { makeCustomer, makeTransaction } from '../test/fixtures';
 
-describe('CustomerBalancePanel Component', () => {
-  const mockProps = {
-    selectedCustomer: {
-      id: 1,
-      firstName: 'Jan',
-      lastName: 'Kowalski',
-      loyaltyPoints: 150,
-    } as any,
-    purchaseHistorySeries: {
-      points: [{ date: '2026-03-18', total: 10 }],
-      maxTotal: 10
-    },
-    customerTransactions: [
-      { id: 1, points: 50, amount: 100, description: 'Test', country: 'PL', type: 'SALE', state: 'AVAILABLE', timestamp: '2026-03-18T10:00:00' } as any
-    ],
-    formatDate: (s?: string) => s || '',
-    formatDateTime: (s?: string) => s || '',
-    t: (key: string) => key,
-  };
+const customer = makeCustomer({ loyaltyPoints: 150 });
+const transactions = [makeTransaction({ description: 'Test' })];
+const history = { points: [{ date: '2026-03-18', total: 10 }], maxTotal: 10 };
 
-  it('renders balance and transaction history', () => {
-    render(<CustomerBalancePanel {...mockProps} />);
+describe('CustomerBalancePanel', () => {
+  it('renders the balance and the transaction history', () => {
+    renderWithApp(<CustomerBalancePanel customer={customer} history={history} transactions={transactions} />);
     expect(screen.getByText(/currentBalance/)).toBeInTheDocument();
     expect(screen.getByText(/150/)).toBeInTheDocument();
     expect(screen.getByText('transactionHistoryTitle')).toBeInTheDocument();
     expect(screen.getByText('Test')).toBeInTheDocument();
   });
 
-  it('shows no history message when points are empty', () => {
-    render(<CustomerBalancePanel {...mockProps} purchaseHistorySeries={{ points: [], maxTotal: 0 }} />);
-    expect(screen.getByText('noPurchaseHistory')).toBeInTheDocument();
+  it('shows the empty message when there is no purchase history', () => {
+    renderWithApp(<CustomerBalancePanel customer={customer} history={{ points: [], maxTotal: 0 }} transactions={[]} />);
+    expect(screen.getAllByText('noPurchaseHistory').length).toBeGreaterThan(0);
+  });
+
+  it('formats dates using the locale of the chosen language', () => {
+    renderWithApp(<CustomerBalancePanel customer={customer} history={history} transactions={transactions} />);
+    // pl-PL, dateStyle: 'medium' — kolejność dzień/miesiąc/rok, nie amerykańska.
+    expect(screen.getByText(/18 mar 2026/)).toBeInTheDocument();
   });
 });

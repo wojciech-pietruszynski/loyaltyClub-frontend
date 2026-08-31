@@ -1,100 +1,37 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Download } from 'lucide-react';
-import api from '../api/client';
-import type { AuditLogEntry, ReportsSummary } from '../types';
-import type { Translator } from '../types/ui';
+import { useAppContext } from '../context/appContext';
 
-type ReportsAuditSectionProps = {
-  t: Translator;
-  isAdmin: boolean;
-};
+/**
+ * Sekcja prezentacyjna — dane i eksport idą przez `useReports`.
+ * Wcześniej ten komponent, jako jedyny w warstwie prezentacji, importował
+ * klienta HTTP bezpośrednio i zarządzał własnym stanem sieciowym.
+ */
+export function ReportsAuditSection() {
+  const { t, format, session, data } = useAppContext();
+  const { summary, auditLogs, loading, exporting, error, fetchSummary, fetchAuditLogs, exportCsv } = data.reports;
+  const { isAdmin } = session;
 
-const cellStyle = { borderBottom: '1px solid var(--border)', padding: '0.5rem' } as const;
-const headCellStyle = { ...cellStyle, textAlign: 'left' } as const;
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-}
-
-export function ReportsAuditSection({ t, isAdmin }: ReportsAuditSectionProps) {
-  const [summary, setSummary] = useState<ReportsSummary | null>(null);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [exportFrom, setExportFrom] = useState('');
   const [exportTo, setExportTo] = useState('');
-  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => { void fetchSummary(); }, [fetchSummary]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      setLoading(true);
-      try {
-        const { data } = await api.get<ReportsSummary>('/reports/summary');
-        if (!cancelled) {
-          setSummary(data);
-          setError(null);
-        }
-      } catch {
-        if (!cancelled) setError(t('reportsLoadError'));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void load();
-    return () => { cancelled = true; };
-  }, [t]);
-
-  useEffect(() => {
-    if (!isAdmin) {
-      setAuditLogs([]);
-      return;
+    if (isAdmin) {
+      void fetchAuditLogs();
     }
+  }, [isAdmin, fetchAuditLogs]);
 
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const { data } = await api.get<AuditLogEntry[]>('/audit-logs');
-        if (!cancelled) setAuditLogs(data);
-      } catch {
-        if (!cancelled) setAuditLogs([]);
-      }
-    };
-
-    void load();
-    return () => { cancelled = true; };
-  }, [isAdmin]);
-
-  const downloadCsv = useCallback(async (path: string, fileName: string, params?: Record<string, string>) => {
-    setExporting(true);
-    try {
-      const { data } = await api.get<Blob>(path, { params, responseType: 'blob' });
-      const url = URL.createObjectURL(data);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      setError(null);
-    } catch {
-      setError(t('reportsExportError'));
-    } finally {
-      setExporting(false);
-    }
-  }, [t]);
-
-  const exportParams = () => {
+  const exportParams = (): Record<string, string> => {
     const params: Record<string, string> = {};
     if (exportFrom) params.from = exportFrom;
     if (exportTo) params.to = exportTo;
     return params;
   };
+
+  const cellStyle = { borderBottom: '1px solid var(--border)', padding: '0.5rem' } as const;
+  const headStyle = { ...cellStyle, textAlign: 'left' } as const;
 
   return (
     <div>
@@ -107,21 +44,21 @@ export function ReportsAuditSection({ t, isAdmin }: ReportsAuditSectionProps) {
         )}
 
         {loading && <p>{t('loading')}</p>}
-        {error && <p style={{ color: 'var(--danger, #d4380d)' }}>{error}</p>}
+        {error && <p className="error-msg" role="alert">{error}</p>}
 
         {summary && (
           <div className="grid coupon-actions-grid">
             <div className="card" style={{ textAlign: 'center' }}>
               <h3 style={{ marginTop: 0 }}>{t('reportsCustomerCount')}</h3>
-              <p style={{ fontSize: '1.6rem', margin: 0 }}>{summary.customerCount}</p>
+              <p style={{ fontSize: '1.6rem', margin: 0 }}>{format.formatNumber(summary.customerCount)}</p>
             </div>
             <div className="card" style={{ textAlign: 'center' }}>
               <h3 style={{ marginTop: 0 }}>{t('reportsTotalPoints')}</h3>
-              <p style={{ fontSize: '1.6rem', margin: 0 }}>{summary.totalLoyaltyPoints}</p>
+              <p style={{ fontSize: '1.6rem', margin: 0 }}>{format.formatNumber(summary.totalLoyaltyPoints)}</p>
             </div>
             <div className="card" style={{ textAlign: 'center' }}>
               <h3 style={{ marginTop: 0 }}>{t('reportsTransactions30d')}</h3>
-              <p style={{ fontSize: '1.6rem', margin: 0 }}>{summary.transactionsLast30Days}</p>
+              <p style={{ fontSize: '1.6rem', margin: 0 }}>{format.formatNumber(summary.transactionsLast30Days)}</p>
             </div>
           </div>
         )}
@@ -133,7 +70,7 @@ export function ReportsAuditSection({ t, isAdmin }: ReportsAuditSectionProps) {
             className="input"
             type="date"
             value={exportFrom}
-            onChange={(e) => setExportFrom(e.target.value)}
+            onChange={(event) => setExportFrom(event.target.value)}
           />
         </div>
         <div className="form-group">
@@ -143,7 +80,7 @@ export function ReportsAuditSection({ t, isAdmin }: ReportsAuditSectionProps) {
             className="input"
             type="date"
             value={exportTo}
-            onChange={(e) => setExportTo(e.target.value)}
+            onChange={(event) => setExportTo(event.target.value)}
           />
         </div>
         <div className="form-actions">
@@ -151,7 +88,7 @@ export function ReportsAuditSection({ t, isAdmin }: ReportsAuditSectionProps) {
             className="btn btn-primary"
             type="button"
             disabled={exporting}
-            onClick={() => { void downloadCsv('/reports/export/customers', 'customers.csv'); }}
+            onClick={() => { void exportCsv('/reports/export/customers', 'customers.csv'); }}
           >
             <Download size={16} /> {t('reportsExportCustomers')}
           </button>
@@ -159,7 +96,7 @@ export function ReportsAuditSection({ t, isAdmin }: ReportsAuditSectionProps) {
             className="btn btn-primary"
             type="button"
             disabled={exporting}
-            onClick={() => { void downloadCsv('/reports/export/transactions', 'transactions.csv', exportParams()); }}
+            onClick={() => { void exportCsv('/reports/export/transactions', 'transactions.csv', exportParams()); }}
           >
             <Download size={16} /> {t('reportsExportTransactions')}
           </button>
@@ -176,18 +113,18 @@ export function ReportsAuditSection({ t, isAdmin }: ReportsAuditSectionProps) {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th style={headCellStyle}>{t('auditColTime')}</th>
-                    <th style={headCellStyle}>{t('auditColUser')}</th>
-                    <th style={headCellStyle}>{t('auditColRole')}</th>
-                    <th style={headCellStyle}>{t('auditColAction')}</th>
-                    <th style={headCellStyle}>{t('auditColResource')}</th>
-                    <th style={headCellStyle}>{t('auditColResourceId')}</th>
+                    <th style={headStyle}>{t('auditColTime')}</th>
+                    <th style={headStyle}>{t('auditColUser')}</th>
+                    <th style={headStyle}>{t('auditColRole')}</th>
+                    <th style={headStyle}>{t('auditColAction')}</th>
+                    <th style={headStyle}>{t('auditColResource')}</th>
+                    <th style={headStyle}>{t('auditColResourceId')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {auditLogs.map((entry) => (
                     <tr key={entry.id}>
-                      <td style={cellStyle}>{formatDateTime(entry.timestamp)}</td>
+                      <td style={cellStyle}>{format.formatDateTime(entry.timestamp)}</td>
                       <td style={cellStyle}>{entry.username}</td>
                       <td style={cellStyle}>{entry.role}</td>
                       <td style={cellStyle}>{entry.action}</td>
