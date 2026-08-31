@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom';
+import { configure } from '@testing-library/react';
 import { vi } from 'vitest';
+
+// Domyślny limit 1 s bywa za krótki na zimnym przebiegu z instrumentacją
+// pokrycia — to źródło testów, które raz przechodzą, a raz nie.
+configure({ asyncUtilTimeout: 5_000 });
 
 // Mock matchMedia for Ant Design components
 Object.defineProperty(window, 'matchMedia', {

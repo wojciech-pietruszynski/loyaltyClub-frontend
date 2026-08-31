@@ -1,12 +1,34 @@
-import { useState, useCallback, useEffect } from 'react';
-import { login as apiLogin, logout as apiLogout, isAuthenticated, getAuthRole, getAuthCountry, getExpiresAt, type AuthRole } from '../api/client';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  getAuthCountry,
+  getAuthRole,
+  getExpiresAt,
+  isAuthenticated,
+  login as apiLogin,
+  logout as apiLogout,
+  type AuthRole,
+} from '../api/client';
+import type { StateSetter, Translator } from '../types/ui';
+import { useApiErrorMessage } from './useApiError';
 
-export function useAuth() {
+export type AuthApi = {
+  loggedIn: boolean;
+  authRole: AuthRole | null;
+  authCountry: string | null;
+  expiresAt: number;
+  authError: string | null;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  setAuthError: StateSetter<string | null>;
+};
+
+export function useAuth(t: Translator): AuthApi {
   const [loggedIn, setLoggedIn] = useState<boolean>(() => isAuthenticated());
   const [authRole, setAuthRole] = useState<AuthRole | null>(() => getAuthRole());
   const [authCountry, setAuthCountry] = useState<string | null>(() => getAuthCountry());
   const [expiresAt, setExpiresAt] = useState<number>(() => getExpiresAt());
   const [authError, setAuthError] = useState<string | null>(null);
+  const toMessage = useApiErrorMessage(t);
 
   const login = useCallback(async (username: string, password: string) => {
     try {
@@ -17,11 +39,11 @@ export function useAuth() {
       setExpiresAt(getExpiresAt());
       setAuthError(null);
       return true;
-    } catch (err: any) {
-      setAuthError(err.response?.data?.detail || 'Login failed');
+    } catch (err: unknown) {
+      setAuthError(toMessage(err, 'loginFailed'));
       return false;
     }
-  }, []);
+  }, [toMessage]);
 
   const logout = useCallback(() => {
     apiLogout();

@@ -1,50 +1,47 @@
-import type { FormEvent, KeyboardEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { DatePicker } from 'antd';
 import dayjs from 'dayjs';
-import { PenSquare, X } from 'lucide-react';
+import { PenSquare } from 'lucide-react';
+import { useAppContext } from '../context/appContext';
+import { CountrySelect } from './CountrySelect';
+import { FieldMessage } from './FieldMessage';
+import { ModalShell } from './ModalShell';
 import type { HierarchyPromotion } from '../types';
-import type { HierarchyPromotionFormState, StateSetter, Translator } from '../types/ui';
+import type { HierarchyPromotionFormState } from '../types/ui';
+import { hasErrors, validateHierarchyPromotion, type FieldErrors } from '../lib/validation';
 
-type HierarchyPromotionsSectionProps = {
-  t: Translator;
-  availableCountries: string[];
-  promotionView: 'create' | 'browse' | null;
-  setPromotionView: StateSetter<'create' | 'browse' | null>;
-  resetForm: () => void;
-  closeModal: () => void;
-  form: HierarchyPromotionFormState;
-  setForm: StateSetter<HierarchyPromotionFormState>;
-  handleSave: (e: FormEvent) => Promise<void>;
-  saving: boolean;
-  promotions: HierarchyPromotion[];
-  handleEdit: (promotion: HierarchyPromotion) => void;
-  handleToggleStatus: (promotion: HierarchyPromotion, enabled: boolean) => Promise<void>;
-  formatDateTime: (value: string) => string;
-};
+type PromotionView = 'create' | 'browse' | null;
 
-export function HierarchyPromotionsSection({
-  t,
-  availableCountries,
-  promotionView,
-  setPromotionView,
-  resetForm,
-  closeModal,
-  form,
-  setForm,
-  handleSave,
-  saving,
-  promotions,
-  handleEdit,
-  handleToggleStatus,
-  formatDateTime,
-}: HierarchyPromotionsSectionProps) {
-  const openCreateView = () => {
-    resetForm();
-    setPromotionView('create');
+function emptyForm(country: string | null): HierarchyPromotionFormState {
+  return {
+    id: null,
+    name: '',
+    country: country ?? '',
+    hierarchy: '',
+    productClass: '',
+    subclass: '',
+    type: 'MULTIPLIER',
+    multiplier: '',
+    startsAt: '',
+    endsAt: '',
+    enabled: true,
   };
+}
 
-  const openBrowseView = () => {
-    setPromotionView('browse');
+export function HierarchyPromotionsSection() {
+  const { t, format, session, data, notifySuccess } = useAppContext();
+  const { hierarchyPromotions, loading, error, ensureHierarchyPromotions, saveHierarchyPromotion, toggleHierarchyPromotion } = data.hierarchyPromotions;
+
+  useEffect(() => { void ensureHierarchyPromotions(); }, [ensureHierarchyPromotions]);
+
+  const [view, setView] = useState<PromotionView>(null);
+  const [form, setForm] = useState<HierarchyPromotionFormState>(() => emptyForm(session.country));
+  const [errors, setErrors] = useState<FieldErrors<HierarchyPromotionFormState>>({});
+
+  const openCreateView = () => {
+    setForm(emptyForm(session.country));
+    setErrors({});
+    setView('create');
   };
 
   const handleTileKeyDown = (event: KeyboardEvent<HTMLDivElement>, action: () => void) => {
@@ -53,6 +50,46 @@ export function HierarchyPromotionsSection({
       action();
     }
   };
+
+  const handleSave = useCallback(async (event: FormEvent) => {
+    event.preventDefault();
+    const validation = validateHierarchyPromotion(form);
+    setErrors(validation);
+    if (hasErrors(validation)) return;
+
+    if (await saveHierarchyPromotion(form, form.id ?? undefined)) {
+      notifySuccess(t(form.id ? 'hierarchyPromotionUpdatedSuccess' : 'hierarchyPromotionCreatedSuccess'));
+      setView(null);
+    }
+  }, [form, saveHierarchyPromotion, notifySuccess, t]);
+
+  const handleEdit = (promotion: HierarchyPromotion) => {
+    setForm({
+      id: promotion.id,
+      name: promotion.name,
+      country: promotion.country,
+      hierarchy: promotion.hierarchy ?? '',
+      productClass: promotion.productClass ?? '',
+      subclass: promotion.subclass ?? '',
+      type: promotion.type,
+      multiplier: promotion.multiplier != null ? String(promotion.multiplier) : '',
+      startsAt: promotion.startsAt.slice(0, 16),
+      endsAt: promotion.endsAt ? promotion.endsAt.slice(0, 16) : '',
+      enabled: promotion.enabled,
+    });
+    setErrors({});
+    setView('create');
+  };
+
+  const handleToggle = useCallback(async (promotion: HierarchyPromotion, enabled: boolean) => {
+    if (await toggleHierarchyPromotion(promotion.id, enabled)) {
+      notifySuccess(t(enabled ? 'hierarchyPromotionEnabledSuccess' : 'hierarchyPromotionDisabledSuccess'));
+    }
+  }, [toggleHierarchyPromotion, notifySuccess, t]);
+
+  const cellStyle = { borderBottom: '1px solid var(--border)', padding: '0.5rem' } as const;
+  const headStyle = { ...cellStyle, textAlign: 'left' } as const;
+  const optionalHint = <small style={{ color: 'var(--text-light)' }}>{t('hierarchyCodeOptional')}</small>;
 
   return (
     <div>
@@ -73,231 +110,177 @@ export function HierarchyPromotionsSection({
           style={{ textAlign: 'center' }}
           role="button"
           tabIndex={0}
-          onClick={openBrowseView}
-          onKeyDown={(event) => handleTileKeyDown(event, openBrowseView)}
+          onClick={() => setView('browse')}
+          onKeyDown={(event) => handleTileKeyDown(event, () => setView('browse'))}
         >
           <h3>{t('hierarchyPromotionBrowseTileTitle')}</h3>
           <p>{t('hierarchyPromotionBrowseTileDesc')}</p>
         </div>
       </div>
 
-      {promotionView === 'create' && (
-        <div className="modal-overlay" onClick={closeModal} role="presentation">
-          <div
-            className="card modal-panel"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="hierarchy-promo-create-title"
-          >
-            <div className="modal-header">
-              <h2 id="hierarchy-promo-create-title" style={{ margin: 0 }}>
-                {form.id === null ? t('hierarchyPromotionCreateTitle') : t('hierarchyPromotionEditTitle')}
-              </h2>
-              <button className="btn icon-btn modal-close-btn" type="button" onClick={closeModal} aria-label={t('close')} title={t('close')}>
-                <X size={16} />
-              </button>
+      {view === 'create' && (
+        <ModalShell
+          titleId="hierarchy-promo-create-title"
+          title={form.id === null ? t('hierarchyPromotionCreateTitle') : t('hierarchyPromotionEditTitle')}
+          onClose={() => setView(null)}
+          error={error}
+        >
+          <form onSubmit={(event) => { void handleSave(event); }} noValidate>
+            <div className="form-group">
+              <label htmlFor="hierarchyName">{t('hierarchyPromotionName')}</label>
+              <input id="hierarchyName" className="input" value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} />
+              <FieldMessage error={errors.name} />
             </div>
-            <form onSubmit={(event) => { void handleSave(event); }}>
-              <div className="form-group">
-                <label>{t('hierarchyPromotionName')}</label>
-                <input
-                  className="input"
-                  value={form.name}
-                  onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>{t('country')}</label>
-                <select
-                  className="input"
-                  value={form.country}
-                  onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))}
-                  required
-                >
-                  <option value="">{t('selectCountry')}</option>
-                  {availableCountries.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>{t('hierarchyPromotionType')}</label>
-                <select
-                  className="input"
-                  value={form.type}
-                  onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value as 'MULTIPLIER' | 'EXCLUSION' }))}
-                  required
-                >
-                  <option value="MULTIPLIER">{t('hierarchyPromotionTypeMultiplier')}</option>
-                  <option value="EXCLUSION">{t('hierarchyPromotionTypeExclusion')}</option>
-                </select>
-              </div>
-              {form.type === 'MULTIPLIER' && (
-                <div className="form-group">
-                  <label>{t('multiplier')}</label>
-                  <input
-                    className="input"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={form.multiplier}
-                    onChange={(e) => setForm((prev) => ({ ...prev, multiplier: e.target.value }))}
-                    required
-                  />
-                </div>
-              )}
-              <div className="form-group">
-                <label>{t('hierarchyCode')} <small style={{ color: 'var(--text-light)' }}>{t('hierarchyCodeOptional')}</small></label>
-                <input
-                  className="input"
-                  value={form.hierarchy}
-                  onChange={(e) => setForm((prev) => ({ ...prev, hierarchy: e.target.value }))}
-                  placeholder="np. 42"
-                />
-              </div>
-              <div className="form-group">
-                <label>{t('productClass')} <small style={{ color: 'var(--text-light)' }}>{t('hierarchyCodeOptional')}</small></label>
-                <input
-                  className="input"
-                  value={form.productClass}
-                  onChange={(e) => setForm((prev) => ({ ...prev, productClass: e.target.value }))}
-                />
-              </div>
-              <div className="form-group">
-                <label>{t('subclass')} <small style={{ color: 'var(--text-light)' }}>{t('hierarchyCodeOptional')}</small></label>
-                <input
-                  className="input"
-                  value={form.subclass}
-                  onChange={(e) => setForm((prev) => ({ ...prev, subclass: e.target.value }))}
-                />
-              </div>
-              <div className="form-group">
-                <label>{t('hierarchyPromotionStartsAt')}</label>
-                <DatePicker
-                  showTime={{ format: 'HH:mm' }}
-                  format="YYYY-MM-DD HH:mm"
-                  value={form.startsAt ? dayjs(form.startsAt) : null}
-                  onChange={(date) => setForm((prev) => ({ ...prev, startsAt: date ? date.format('YYYY-MM-DDTHH:mm') : '' }))}
-                  style={{ width: '100%' }}
-                  needConfirm={false}
-                />
-              </div>
-              <div className="form-group">
-                <label>{t('hierarchyPromotionEndsAt')}</label>
-                <DatePicker
-                  showTime={{ format: 'HH:mm' }}
-                  format="YYYY-MM-DD HH:mm"
-                  value={form.endsAt ? dayjs(form.endsAt) : null}
-                  onChange={(date) => setForm((prev) => ({ ...prev, endsAt: date ? date.format('YYYY-MM-DDTHH:mm') : '' }))}
-                  style={{ width: '100%' }}
-                  needConfirm={false}
-                  allowClear
-                />
-              </div>
-              <div className="form-actions">
-                <button className="btn btn-primary" type="submit" disabled={saving}>
-                  {saving ? t('loading') : t('save')}
-                </button>
-                <button className="btn" type="button" onClick={closeModal}>
-                  {t('cancel')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {promotionView === 'browse' && (
-        <div className="modal-overlay" onClick={() => setPromotionView(null)} role="presentation">
-          <div
-            className="card modal-panel"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="hierarchy-promo-list-title"
-          >
-            <div className="modal-header">
-              <h2 id="hierarchy-promo-list-title" style={{ margin: 0 }}>{t('hierarchyPromotionListTitle')}</h2>
-              <button className="btn icon-btn modal-close-btn" type="button" onClick={() => setPromotionView(null)} aria-label={t('close')} title={t('close')}>
-                <X size={16} />
-              </button>
+            <div className="form-group">
+              <label htmlFor="hierarchyCountry">{t('country')}</label>
+              <CountrySelect id="hierarchyCountry" value={form.country} onChange={(country) => setForm((prev) => ({ ...prev, country }))} />
+              <FieldMessage error={errors.country} />
             </div>
-            {promotions.length === 0 ? (
-              <p>{t('noHierarchyPromotions')}</p>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('hierarchyPromotionName')}</th>
-                      <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('country')}</th>
-                      <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('hierarchyPromotionType')}</th>
-                      <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('hierarchyCode')}</th>
-                      <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('productClass')}</th>
-                      <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('subclass')}</th>
-                      <th style={{ textAlign: 'right', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('multiplier')}</th>
-                      <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('hierarchyPromotionStartsAt')}</th>
-                      <th style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('hierarchyPromotionEndsAt')}</th>
-                      <th style={{ textAlign: 'center', borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{t('status')}</th>
-                      <th style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }} />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {promotions.map((promotion) => (
-                      <tr key={promotion.id}>
-                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{promotion.name}</td>
-                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{promotion.country}</td>
-                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>
-                          {promotion.type === 'MULTIPLIER' ? t('hierarchyPromotionTypeMultiplier') : t('hierarchyPromotionTypeExclusion')}
-                        </td>
-                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{promotion.hierarchy ?? '-'}</td>
-                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{promotion.productClass ?? '-'}</td>
-                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{promotion.subclass ?? '-'}</td>
-                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem', textAlign: 'right' }}>
-                          {promotion.multiplier != null ? `x${promotion.multiplier}` : '-'}
-                        </td>
-                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>{formatDateTime(promotion.startsAt)}</td>
-                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem' }}>
-                          {promotion.endsAt ? formatDateTime(promotion.endsAt) : '-'}
-                        </td>
-                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem', textAlign: 'center' }}>
-                          <label className="switch">
-                            <input
-                              type="checkbox"
-                              checked={promotion.enabled}
-                              onChange={(e) => {
-                                void handleToggleStatus(promotion, e.target.checked);
-                              }}
-                            />
-                            <span className="slider" />
-                          </label>
-                        </td>
-                        <td style={{ borderBottom: '1px solid var(--border)', padding: '0.5rem', textAlign: 'center' }}>
-                          <button
-                            className="btn icon-btn"
-                            type="button"
-                            onClick={() => handleEdit(promotion)}
-                            title={t('edit')}
-                            aria-label={t('edit')}
-                          >
-                            <PenSquare size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="form-group">
+              <label htmlFor="hierarchyType">{t('hierarchyPromotionType')}</label>
+              <select
+                id="hierarchyType"
+                className="input"
+                value={form.type}
+                onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value as HierarchyPromotionFormState['type'] }))}
+              >
+                <option value="MULTIPLIER">{t('hierarchyPromotionTypeMultiplier')}</option>
+                <option value="EXCLUSION">{t('hierarchyPromotionTypeExclusion')}</option>
+              </select>
+            </div>
+            {form.type === 'MULTIPLIER' && (
+              <div className="form-group">
+                <label htmlFor="hierarchyMultiplier">{t('multiplier')}</label>
+                <input
+                  id="hierarchyMultiplier"
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  value={form.multiplier}
+                  onChange={(event) => setForm((prev) => ({ ...prev, multiplier: event.target.value }))}
+                />
+                <FieldMessage error={errors.multiplier} />
               </div>
             )}
-            <div className="form-actions">
-              <button className="btn" type="button" onClick={() => setPromotionView(null)}>
-                {t('close')}
-              </button>
+            <div className="form-group">
+              <label htmlFor="hierarchyCode">{t('hierarchyCode')} {optionalHint}</label>
+              <input id="hierarchyCode" className="input" value={form.hierarchy} onChange={(event) => setForm((prev) => ({ ...prev, hierarchy: event.target.value }))} placeholder="np. 42" />
             </div>
+            <div className="form-group">
+              <label htmlFor="hierarchyProductClass">{t('productClass')} {optionalHint}</label>
+              <input id="hierarchyProductClass" className="input" value={form.productClass} onChange={(event) => setForm((prev) => ({ ...prev, productClass: event.target.value }))} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="hierarchySubclass">{t('subclass')} {optionalHint}</label>
+              <input id="hierarchySubclass" className="input" value={form.subclass} onChange={(event) => setForm((prev) => ({ ...prev, subclass: event.target.value }))} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="hierarchyStartsAt">{t('hierarchyPromotionStartsAt')}</label>
+              <DatePicker
+                id="hierarchyStartsAt"
+                showTime={{ format: 'HH:mm' }}
+                format="YYYY-MM-DD HH:mm"
+                value={form.startsAt ? dayjs(form.startsAt) : null}
+                onChange={(date) => setForm((prev) => ({ ...prev, startsAt: date ? date.format('YYYY-MM-DDTHH:mm') : '' }))}
+                style={{ width: '100%' }}
+                needConfirm={false}
+              />
+              <FieldMessage error={errors.startsAt} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="hierarchyEndsAt">{t('hierarchyPromotionEndsAt')}</label>
+              <DatePicker
+                id="hierarchyEndsAt"
+                showTime={{ format: 'HH:mm' }}
+                format="YYYY-MM-DD HH:mm"
+                value={form.endsAt ? dayjs(form.endsAt) : null}
+                onChange={(date) => setForm((prev) => ({ ...prev, endsAt: date ? date.format('YYYY-MM-DDTHH:mm') : '' }))}
+                style={{ width: '100%' }}
+                needConfirm={false}
+                allowClear
+              />
+              <FieldMessage error={errors.endsAt} />
+            </div>
+            <div className="form-actions">
+              <button className="btn btn-primary" type="submit" disabled={loading}>
+                {loading ? t('loading') : t('save')}
+              </button>
+              <button className="btn" type="button" onClick={() => setView(null)}>{t('cancel')}</button>
+            </div>
+          </form>
+        </ModalShell>
+      )}
+
+      {view === 'browse' && (
+        <ModalShell titleId="hierarchy-promo-list-title" title={t('hierarchyPromotionListTitle')} onClose={() => setView(null)} error={error}>
+          {hierarchyPromotions.length === 0 ? (
+            <p>{t('noHierarchyPromotions')}</p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={headStyle}>{t('hierarchyPromotionName')}</th>
+                    <th style={headStyle}>{t('country')}</th>
+                    <th style={headStyle}>{t('hierarchyPromotionType')}</th>
+                    <th style={headStyle}>{t('hierarchyCode')}</th>
+                    <th style={headStyle}>{t('productClass')}</th>
+                    <th style={headStyle}>{t('subclass')}</th>
+                    <th style={{ ...cellStyle, textAlign: 'right' }}>{t('multiplier')}</th>
+                    <th style={headStyle}>{t('hierarchyPromotionStartsAt')}</th>
+                    <th style={headStyle}>{t('hierarchyPromotionEndsAt')}</th>
+                    <th style={{ ...cellStyle, textAlign: 'center' }}>{t('status')}</th>
+                    <th style={cellStyle} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {hierarchyPromotions.map((promotion) => (
+                    <tr key={promotion.id}>
+                      <td style={cellStyle}>{promotion.name}</td>
+                      <td style={cellStyle}>{promotion.country}</td>
+                      <td style={cellStyle}>
+                        {promotion.type === 'MULTIPLIER' ? t('hierarchyPromotionTypeMultiplier') : t('hierarchyPromotionTypeExclusion')}
+                      </td>
+                      <td style={cellStyle}>{promotion.hierarchy ?? '-'}</td>
+                      <td style={cellStyle}>{promotion.productClass ?? '-'}</td>
+                      <td style={cellStyle}>{promotion.subclass ?? '-'}</td>
+                      <td style={{ ...cellStyle, textAlign: 'right' }}>
+                        {promotion.multiplier != null ? `x${format.formatNumber(promotion.multiplier)}` : '-'}
+                      </td>
+                      <td style={cellStyle}>{format.formatDateTime(promotion.startsAt)}</td>
+                      <td style={cellStyle}>{format.formatDateTime(promotion.endsAt)}</td>
+                      <td style={{ ...cellStyle, textAlign: 'center' }}>
+                        <label className="switch">
+                          <input
+                            type="checkbox"
+                            checked={promotion.enabled}
+                            aria-label={promotion.name}
+                            onChange={(event) => { void handleToggle(promotion, event.target.checked); }}
+                          />
+                          <span className="slider" />
+                        </label>
+                      </td>
+                      <td style={{ ...cellStyle, textAlign: 'center' }}>
+                        <button
+                          className="btn icon-btn"
+                          type="button"
+                          onClick={() => handleEdit(promotion)}
+                          title={t('edit')}
+                          aria-label={t('edit')}
+                        >
+                          <PenSquare size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div className="form-actions">
+            <button className="btn" type="button" onClick={() => setView(null)}>{t('close')}</button>
           </div>
-        </div>
+        </ModalShell>
       )}
     </div>
   );

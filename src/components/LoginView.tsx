@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Alert, Button, Card, ConfigProvider, Input, Typography, theme as antdTheme } from 'antd';
 import type { Translator, Theme } from '../types/ui';
 
@@ -6,27 +6,26 @@ type LoginViewProps = {
   theme: Theme;
   appLogo: string;
   appVersion: string;
-  username: string;
-  password: string;
-  setUsername: (value: string) => void;
-  setPassword: (value: string) => void;
-  handleLogin: (e: FormEvent) => Promise<void>;
+  onLogin: (username: string, password: string) => Promise<void>;
   authError: string | null;
   t: Translator;
 };
 
-export function LoginView({
-  theme,
-  appLogo,
-  appVersion,
-  username,
-  password,
-  setUsername,
-  setPassword,
-  handleLogin,
-  authError,
-  t,
-}: LoginViewProps) {
+/**
+ * Widok logowania renderuje się przed dostawcą kontekstu (sesji jeszcze nie ma),
+ * więc jako jedyny dostaje `t` i motyw jako właściwości. Stan formularza trzyma
+ * sam — orkiestrator nie ma powodu znać wpisywanego hasła.
+ */
+export function LoginView({ theme, appLogo, appVersion, onLogin, authError, t }: LoginViewProps) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    await onLogin(username, password);
+    setPassword('');
+  };
+
   return (
     <ConfigProvider
       theme={{
@@ -38,14 +37,14 @@ export function LoginView({
         <Card className="login-card">
           <img className="login-logo" src={appLogo} alt={t('appTitle')} />
           <Typography.Title level={2}>{t('loginTitle')}</Typography.Title>
-          <form onSubmit={(event) => { void handleLogin(event); }}>
+          <form onSubmit={(event) => { void handleSubmit(event); }}>
             <div className="form-group">
-              <label>{t('login')}</label>
-              <Input value={username} onChange={(event) => setUsername(event.target.value)} required />
+              <label htmlFor="loginUsername">{t('login')}</label>
+              <Input id="loginUsername" value={username} onChange={(event) => setUsername(event.target.value)} required />
             </div>
             <div className="form-group">
-              <label>{t('password')}</label>
-              <Input.Password value={password} onChange={(event) => setPassword(event.target.value)} required />
+              <label htmlFor="loginPassword">{t('password')}</label>
+              <Input.Password id="loginPassword" value={password} onChange={(event) => setPassword(event.target.value)} required />
             </div>
             <div className="form-actions">
               <Button type="primary" htmlType="submit">{t('signIn')}</Button>

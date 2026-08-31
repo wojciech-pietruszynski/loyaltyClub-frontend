@@ -60,7 +60,9 @@ export type NewCustomerFormState = {
 
 export type NewPointsFormState = {
   customerId: string;
-  points: number;
+  // Wszystkie pola liczbowe formularzy są łańcuchami znaków; konwersja następuje
+  // na granicy wysyłki (src/lib/numbers.ts), nie w deserializatorze backendu.
+  points: string;
   description: string;
 };
 

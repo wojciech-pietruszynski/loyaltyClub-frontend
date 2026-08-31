@@ -43,13 +43,13 @@ export interface CustomerTransaction {
   points: number;
   description: string;
   timestamp: string;
-  availableFrom: string;
+  availableFrom: string | null;
 }
 
 export interface TechnicalUser {
   id: number;
   username: string;
-  passwordPreview: string;
+  passwordPreview: string | null;
   country: string;
   enabled: boolean;
 }
@@ -81,7 +81,7 @@ export interface HierarchyPromotion {
 }
 
 export interface ReportsSummary {
-  scope: string;
+  scope: string | null;
   customerCount: number;
   totalLoyaltyPoints: number;
   transactionsLast30Days: number;
