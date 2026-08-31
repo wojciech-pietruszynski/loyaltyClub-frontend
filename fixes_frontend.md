@@ -145,7 +145,7 @@ dodatnia wartość przelicznika i wartości kuponu, całkowita liczba punktów, 
 konta technicznego co najmniej ośmioznakowe, koniec promocji nie wcześniejszy niż
 start, mnożnik wymagany tylko dla typu `MULTIPLIER`.
 
-**Testy:** `lib/validation.test.ts` (17 przypadków) plus przypadki „formularz
+**Testy:** `lib/validation.test.ts` (12 przypadków) plus przypadki „formularz
 niepoprawny — akcja hooka nie została wywołana” w testach pięciu sekcji.
 
 ---
@@ -230,7 +230,7 @@ i była wywoływana raz.
 - Wszystkie sześć hooków dziedzinowych plus `useAuth` używa tej samej ścieżki.
   Do słowników dodano 13 kluczy komunikatów błędów, których wcześniej nie było.
 
-**Testy:** `api/errors.test.ts` (9 przypadków) plus przypadki „komunikat z
+**Testy:** `api/errors.test.ts` (7 przypadków) plus przypadki „komunikat z
 `detail`” i „przetłumaczony tekst zapasowy, gdy backend nie podał `detail`”
 w testach hooków.
 
