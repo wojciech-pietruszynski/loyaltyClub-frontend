@@ -1,0 +1,105 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src/i18n" {
+  class "Formatters" as Formatters <<typ>> #ECEFF1 {
+    - locale : string
+    + formatDate() : string
+    + formatDateTime() : string
+    + formatNumber() : string
+    + formatCurrency() : string
+    + pluralCategory() : Intl.LDMLPluralRule
+  }
+  enum "Language" as Language #FFECB3 {
+    pl
+    en
+    de
+  }
+  enum "PluralTranslationKey" as PluralTranslationKey #FFECB3 {
+    customersFound
+    couponsFound
+    importedCustomers
+  }
+  class "TranslationKey" as TranslationKey <<typ>> #ECEFF1 {
+    = keyof typeof pl
+  }
+  class "TranslationMap" as TranslationMap <<typ>> #ECEFF1 {
+    = Record<TranslationKey, string>
+  }
+  class "i18n/de" as i18n_de <<moduł>> #E8F5E9 {
+    - de : TranslationMap
+  }
+  class "i18n/en" as i18n_en <<moduł>> #E8F5E9 {
+    - en : TranslationMap
+  }
+  class "i18n/format" as i18n_format <<moduł>> #E8F5E9 {
+    + createFormatters(language) : Formatters
+  }
+  class "i18n/index" as i18n_index <<moduł>> #E8F5E9 {
+    + translate(language, key, params) : string
+    + translatePlural(language, key, count, params) : string
+  }
+  class "i18n/pl" as i18n_pl <<moduł>> #E8F5E9 {
+    - pl : {...}
+  }
+}
+package "powiązania spoza tej strony" #F0F0F0 {
+  class "ApiErrorMessage" as ApiErrorMessage #F0F0F0
+  class "App" as App #F0F0F0
+  class "AppContextValue" as AppContextValue #F0F0F0
+  class "AppHeader" as AppHeader #F0F0F0
+  class "AppProvider" as AppProvider #F0F0F0
+  class "FieldError" as FieldError #F0F0F0
+  class "RouteDefinition" as RouteDefinition #F0F0F0
+  class "Translator" as Translator #F0F0F0
+  class "lib/validation" as lib_validation #F0F0F0
+  class "routes" as routes #F0F0F0
+  class "useApiErrorMessage" as useApiErrorMessage #F0F0F0
+  class "useAppContext" as useAppContext #F0F0F0
+}
+ApiErrorMessage --> TranslationKey
+App ..> Language
+AppContextValue --> Formatters
+AppContextValue --> Language
+AppHeader ..> Language
+AppProvider --> Language
+AppProvider ..> PluralTranslationKey
+AppProvider ..> TranslationKey
+FieldError --> TranslationKey
+RouteDefinition --> TranslationKey
+TranslationMap "1" --> "*" TranslationKey
+Translator "1" --> "*" TranslationKey
+i18n_de --> TranslationMap
+i18n_en --> TranslationMap
+i18n_format --> Formatters
+i18n_format ..> Language
+i18n_index ..> Language
+i18n_index ..> TranslationKey
+i18n_index ..> TranslationMap
+i18n_index ..> i18n_de
+i18n_index ..> i18n_en
+i18n_index ..> i18n_format
+i18n_index ..> i18n_pl
+lib_validation ..> TranslationKey
+routes ..> TranslationKey
+useApiErrorMessage ..> TranslationKey
+useAppContext ..> Formatters
+useAppContext ..> Language
+useAppContext ..> PluralTranslationKey
+@enduml

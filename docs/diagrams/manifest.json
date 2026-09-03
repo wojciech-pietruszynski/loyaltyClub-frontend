@@ -1,0 +1,648 @@
+[
+ {
+  "number": 1,
+  "title": "Model dziedzinowy — typy danych zwracanych przez API",
+  "members": [
+   "AuditLogEntry",
+   "Coupon",
+   "CouponTemplate",
+   "Customer",
+   "CustomerTransaction",
+   "HierarchyPromotion",
+   "HierarchyPromotionType",
+   "ReportsSummary",
+   "StorePromotion",
+   "TechnicalUser"
+  ],
+  "links": {
+   "3": [
+    "api/schema"
+   ],
+   "4": [
+    "CouponsApi",
+    "CustomersApi",
+    "useCoupons",
+    "useCustomers"
+   ],
+   "5": [
+    "HierarchyPromotionsApi",
+    "useHierarchyPromotions"
+   ],
+   "6": [
+    "PromotionsApi",
+    "ReportsApi",
+    "TechnicalUsersApi",
+    "usePromotions",
+    "useReports",
+    "useTechnicalUsers"
+   ],
+   "7": [
+    "AppProvider",
+    "useAppContext"
+   ],
+   "8": [
+    "CouponsSection",
+    "CustomerBalancePanel",
+    "CustomersSection",
+    "HierarchyPromotionsSection"
+   ],
+   "9": [
+    "StorePromotionsSection",
+    "ToolsSection"
+   ],
+   "10": [
+    "CustomerDetailsModal"
+   ]
+  },
+  "width": 773,
+  "height": 669
+ },
+ {
+  "number": 2,
+  "title": "Typy interfejsu użytkownika — zakładki, stany formularzy, formatowanie",
+  "members": [
+   "CouponFormState",
+   "CouponTemplateFormState",
+   "CustomerCouponFormState",
+   "CustomerEditFormState",
+   "CustomerModalTab",
+   "HierarchyPromotionFormState",
+   "NewCustomerFormState",
+   "NewPointsFormState",
+   "PromotionFormState",
+   "PurchaseHistoryPoint",
+   "PurchaseHistorySeries",
+   "StateSetter",
+   "Tab",
+   "TechnicalUserFormState",
+   "Theme",
+   "Translator"
+  ],
+  "links": {
+   "3": [
+    "api/schema"
+   ],
+   "4": [
+    "AuthApi",
+    "CouponsApi",
+    "CustomersApi",
+    "useApiErrorMessage",
+    "useAuth",
+    "useCoupons",
+    "useCustomers"
+   ],
+   "5": [
+    "HierarchyPromotionsApi",
+    "useHierarchyPromotions"
+   ],
+   "6": [
+    "PromotionsApi",
+    "ReportsApi",
+    "TechnicalUsersApi",
+    "usePromotions",
+    "useReports",
+    "useTechnicalUsers"
+   ],
+   "7": [
+    "App",
+    "AppContextValue",
+    "AppProvider",
+    "AppShell",
+    "ErrorBoundary",
+    "RouteDefinition",
+    "routes",
+    "useAppContext"
+   ],
+   "8": [
+    "AddPointsSection",
+    "CouponsSection",
+    "CustomerBalancePanel",
+    "CustomersSection",
+    "HierarchyPromotionsSection"
+   ],
+   "9": [
+    "LoginView",
+    "StorePromotionsSection",
+    "ToolsSection"
+   ],
+   "10": [
+    "CustomerDetailsModal"
+   ],
+   "11": [
+    "TranslationKey"
+   ],
+   "12": [
+    "lib/validation"
+   ]
+  },
+  "width": 858,
+  "height": 677
+ },
+ {
+  "number": 3,
+  "title": "Warstwa dostępu do API — klient HTTP, walidacja odpowiedzi, błędy",
+  "members": [
+   "AuthResponse",
+   "AuthRole",
+   "Guard",
+   "ProblemDetailBody",
+   "ResponseShapeError",
+   "api/client",
+   "api/errors",
+   "api/schema"
+  ],
+  "links": {
+   "1": [
+    "AuditLogEntry",
+    "Coupon",
+    "CouponTemplate",
+    "Customer",
+    "CustomerTransaction",
+    "HierarchyPromotion",
+    "ReportsSummary",
+    "StorePromotion",
+    "TechnicalUser"
+   ],
+   "2": [
+    "PurchaseHistorySeries"
+   ],
+   "4": [
+    "AuthApi",
+    "useApiErrorMessage",
+    "useAuth",
+    "useCoupons",
+    "useCustomers"
+   ],
+   "5": [
+    "useHierarchyPromotions"
+   ],
+   "6": [
+    "usePromotions",
+    "useReports",
+    "useTechnicalUsers"
+   ],
+   "7": [
+    "AppProvider",
+    "RouteDefinition",
+    "routes",
+    "useAppContext"
+   ]
+  },
+  "width": 804,
+  "height": 540
+ },
+ {
+  "number": 4,
+  "title": "Hooki dziedzinowe — kontrakty i implementacje (cz. 1 z 3)",
+  "members": [
+   "ApiErrorMessage",
+   "AuthApi",
+   "CouponsApi",
+   "CustomersApi",
+   "useApiErrorMessage",
+   "useAuth",
+   "useCoupons",
+   "useCustomers",
+   "useEnsure"
+  ],
+  "links": {
+   "1": [
+    "Coupon",
+    "CouponTemplate",
+    "Customer",
+    "CustomerTransaction"
+   ],
+   "2": [
+    "CouponFormState",
+    "CouponTemplateFormState",
+    "CustomerEditFormState",
+    "NewCustomerFormState",
+    "PurchaseHistorySeries",
+    "StateSetter",
+    "Translator"
+   ],
+   "3": [
+    "AuthRole",
+    "ResponseShapeError",
+    "api/client",
+    "api/errors",
+    "api/schema"
+   ],
+   "5": [
+    "useHierarchyPromotions"
+   ],
+   "6": [
+    "usePromotions",
+    "useReports",
+    "useTechnicalUsers"
+   ],
+   "7": [
+    "App",
+    "AppContextValue",
+    "AppProvider",
+    "useAppContext"
+   ],
+   "11": [
+    "TranslationKey"
+   ],
+   "12": [
+    "lib/numbers"
+   ]
+  },
+  "width": 1179,
+  "height": 483
+ },
+ {
+  "number": 5,
+  "title": "Hooki dziedzinowe — kontrakty i implementacje (cz. 2 z 3)",
+  "members": [
+   "HierarchyPromotionsApi",
+   "useHierarchyPromotions",
+   "useModalA11y"
+  ],
+  "links": {
+   "1": [
+    "HierarchyPromotion"
+   ],
+   "2": [
+    "HierarchyPromotionFormState",
+    "StateSetter",
+    "Translator"
+   ],
+   "3": [
+    "api/client",
+    "api/schema"
+   ],
+   "4": [
+    "useApiErrorMessage",
+    "useEnsure"
+   ],
+   "7": [
+    "AppProvider",
+    "useAppContext"
+   ],
+   "10": [
+    "ModalShell"
+   ],
+   "12": [
+    "lib/numbers"
+   ]
+  },
+  "width": 506,
+  "height": 302
+ },
+ {
+  "number": 6,
+  "title": "Hooki dziedzinowe — kontrakty i implementacje (cz. 3 z 3)",
+  "members": [
+   "PromotionsApi",
+   "ReportsApi",
+   "TechnicalUsersApi",
+   "usePromotions",
+   "useReports",
+   "useTechnicalUsers"
+  ],
+  "links": {
+   "1": [
+    "AuditLogEntry",
+    "ReportsSummary",
+    "StorePromotion",
+    "TechnicalUser"
+   ],
+   "2": [
+    "PromotionFormState",
+    "StateSetter",
+    "TechnicalUserFormState",
+    "Translator"
+   ],
+   "3": [
+    "api/client",
+    "api/schema"
+   ],
+   "4": [
+    "useApiErrorMessage",
+    "useEnsure"
+   ],
+   "7": [
+    "AppProvider",
+    "useAppContext"
+   ],
+   "12": [
+    "lib/numbers"
+   ]
+  },
+  "width": 661,
+  "height": 356
+ },
+ {
+  "number": 7,
+  "title": "Kontekst aplikacji, powłoka i nawigacja",
+  "members": [
+   "App",
+   "AppContextValue",
+   "AppHeader",
+   "AppProvider",
+   "AppShell",
+   "ErrorBoundary",
+   "Notification",
+   "RouteDefinition",
+   "main",
+   "routes",
+   "useAppContext"
+  ],
+  "links": {
+   "1": [
+    "Coupon"
+   ],
+   "2": [
+    "Tab",
+    "Theme",
+    "Translator"
+   ],
+   "3": [
+    "AuthRole",
+    "api/client"
+   ],
+   "4": [
+    "CouponsApi",
+    "CustomersApi",
+    "useAuth",
+    "useCoupons",
+    "useCustomers"
+   ],
+   "5": [
+    "HierarchyPromotionsApi",
+    "useHierarchyPromotions"
+   ],
+   "6": [
+    "PromotionsApi",
+    "ReportsApi",
+    "TechnicalUsersApi",
+    "usePromotions",
+    "useReports",
+    "useTechnicalUsers"
+   ],
+   "8": [
+    "AddPointsSection",
+    "CouponsSection",
+    "CustomerBalancePanel",
+    "CustomersSection",
+    "HierarchyPromotionsSection"
+   ],
+   "9": [
+    "LoginView",
+    "ReportsAuditSection",
+    "StorePromotionsSection",
+    "ToolsSection"
+   ],
+   "10": [
+    "CountrySelect",
+    "CustomerDetailsModal",
+    "ErrorBoundaryState",
+    "FieldMessage",
+    "ModalShell"
+   ],
+   "11": [
+    "Formatters",
+    "Language",
+    "PluralTranslationKey",
+    "TranslationKey"
+   ]
+  },
+  "width": 1231,
+  "height": 881
+ },
+ {
+  "number": 8,
+  "title": "Komponenty — sekcje funkcjonalne (cz. 1 z 2)",
+  "members": [
+   "AddPointsSection",
+   "CouponsSection",
+   "CustomerBalancePanel",
+   "CustomerView",
+   "CustomersSection",
+   "HierarchyPromotionsSection",
+   "PromotionView (HierarchyPromotionsSection)"
+  ],
+  "links": {
+   "1": [
+    "Coupon",
+    "Customer",
+    "CustomerTransaction",
+    "HierarchyPromotion"
+   ],
+   "2": [
+    "CouponFormState",
+    "CouponTemplateFormState",
+    "HierarchyPromotionFormState",
+    "NewCustomerFormState",
+    "NewPointsFormState",
+    "PurchaseHistorySeries"
+   ],
+   "7": [
+    "useAppContext"
+   ],
+   "9": [
+    "PromotionsPage"
+   ],
+   "10": [
+    "CountrySelect",
+    "CustomerDetailsModal",
+    "FieldMessage",
+    "ModalShell"
+   ],
+   "12": [
+    "FieldErrors",
+    "lib/validation"
+   ]
+  },
+  "width": 609,
+  "height": 356
+ },
+ {
+  "number": 9,
+  "title": "Komponenty — sekcje funkcjonalne (cz. 2 z 2)",
+  "members": [
+   "LoginView",
+   "PromotionView (StorePromotionsSection)",
+   "PromotionsPage",
+   "ReportsAuditSection",
+   "StorePromotionsSection",
+   "ToolView",
+   "ToolsSection"
+  ],
+  "links": {
+   "1": [
+    "StorePromotion",
+    "TechnicalUser"
+   ],
+   "2": [
+    "PromotionFormState",
+    "TechnicalUserFormState",
+    "Theme",
+    "Translator"
+   ],
+   "7": [
+    "App",
+    "useAppContext"
+   ],
+   "8": [
+    "HierarchyPromotionsSection"
+   ],
+   "10": [
+    "CountrySelect",
+    "FieldMessage",
+    "ModalShell"
+   ],
+   "12": [
+    "FieldError",
+    "FieldErrors",
+    "lib/validation"
+   ]
+  },
+  "width": 796,
+  "height": 295
+ },
+ {
+  "number": 10,
+  "title": "Komponenty — modale i elementy wspólne",
+  "members": [
+   "CountrySelect",
+   "CouponDialog",
+   "CouponFilterField",
+   "CustomerDetailsModal",
+   "ErrorBoundaryState",
+   "FieldMessage",
+   "ModalShell"
+  ],
+  "links": {
+   "1": [
+    "Coupon",
+    "Customer",
+    "CustomerTransaction"
+   ],
+   "2": [
+    "CustomerCouponFormState",
+    "CustomerEditFormState",
+    "CustomerModalTab",
+    "PurchaseHistorySeries"
+   ],
+   "5": [
+    "useModalA11y"
+   ],
+   "7": [
+    "ErrorBoundary",
+    "useAppContext"
+   ],
+   "8": [
+    "AddPointsSection",
+    "CouponsSection",
+    "CustomerBalancePanel",
+    "CustomersSection",
+    "HierarchyPromotionsSection"
+   ],
+   "9": [
+    "StorePromotionsSection",
+    "ToolsSection"
+   ],
+   "12": [
+    "FieldError",
+    "FieldErrors",
+    "lib/validation"
+   ]
+  },
+  "width": 760,
+  "height": 337
+ },
+ {
+  "number": 11,
+  "title": "Internacjonalizacja — słowniki, tłumaczenia, formatowanie",
+  "members": [
+   "Formatters",
+   "Language",
+   "PluralTranslationKey",
+   "TranslationKey",
+   "TranslationMap",
+   "i18n/de",
+   "i18n/en",
+   "i18n/format",
+   "i18n/index",
+   "i18n/pl"
+  ],
+  "links": {
+   "2": [
+    "Translator"
+   ],
+   "4": [
+    "ApiErrorMessage",
+    "useApiErrorMessage"
+   ],
+   "7": [
+    "App",
+    "AppContextValue",
+    "AppHeader",
+    "AppProvider",
+    "RouteDefinition",
+    "routes",
+    "useAppContext"
+   ],
+   "12": [
+    "FieldError",
+    "lib/validation"
+   ]
+  },
+  "width": 1426,
+  "height": 561
+ },
+ {
+  "number": 12,
+  "title": "Narzędzia pomocnicze — liczby i walidacja formularzy",
+  "members": [
+   "FieldError",
+   "FieldErrors",
+   "lib/numbers",
+   "lib/validation"
+  ],
+  "links": {
+   "2": [
+    "CouponFormState",
+    "CouponTemplateFormState",
+    "CustomerEditFormState",
+    "HierarchyPromotionFormState",
+    "NewCustomerFormState",
+    "NewPointsFormState",
+    "PromotionFormState",
+    "TechnicalUserFormState"
+   ],
+   "4": [
+    "useCoupons",
+    "useCustomers"
+   ],
+   "5": [
+    "useHierarchyPromotions"
+   ],
+   "6": [
+    "usePromotions"
+   ],
+   "8": [
+    "AddPointsSection",
+    "CouponsSection",
+    "CustomersSection",
+    "HierarchyPromotionsSection"
+   ],
+   "9": [
+    "StorePromotionsSection",
+    "ToolsSection"
+   ],
+   "10": [
+    "CustomerDetailsModal",
+    "FieldMessage"
+   ],
+   "11": [
+    "TranslationKey"
+   ]
+  },
+  "width": 531,
+  "height": 536
+ }
+]

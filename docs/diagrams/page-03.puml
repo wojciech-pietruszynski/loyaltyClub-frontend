@@ -1,0 +1,76 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src/api" {
+  class "AuthResponse" as AuthResponse <<typ>> #ECEFF1 {
+    - token : string
+    - expiresAt : number
+    - role : AuthRole
+    - country : string | null
+  }
+  enum "AuthRole" as AuthRole #FFECB3 {
+    ADMIN
+    TECHNICAL
+  }
+  class "Guard" as Guard <<typ>> #ECEFF1 {
+    = (value: unknown) => value is T
+  }
+  class "ProblemDetailBody" as ProblemDetailBody <<typ>> #ECEFF1 {
+    - detail? : unknown
+    - title? : unknown
+    - error? : unknown
+    - message? : unknown
+  }
+  class "ResponseShapeError" as ResponseShapeError #ECEFF1 {
+    - context : string
+    + constructor() : void
+  }
+  class "api/client" as api_client <<moduł>> #E8F5E9 {
+    - api : axios.create(...)
+    + getExpiresAt() : number
+    + isAuthenticated() : boolean
+    + getAuthRole() : AuthRole | null
+    + getAuthCountry() : string | null
+    + logout() : void
+    + login(username, password) : Promise<AuthResponse>
+  }
+  class "api/errors" as api_errors <<moduł>> #E8F5E9 {
+    + extractApiError(err, fallback) : string
+    + getErrorStatus(err) : number | null
+  }
+  class "api/schema" as api_schema <<moduł>> #E8F5E9 {
+    + parseObject(context, value, guard) : T
+    + parseList(context, value, guard) : T[]
+    + isCustomer(value) : value is Customer
+    + isCoupon(value) : value is Coupon
+    + isCouponTemplate(value) : value is CouponTemplate
+    + isCustomerTransaction(value) : value is CustomerTransaction
+    + isTechnicalUser(value) : value is TechnicalUser
+    + isStorePromotion(value) : value is StorePromotion
+    + isHierarchyPromotion(value) : value is HierarchyPromotion
+    + isReportsSummary(value) : value is ReportsSummary
+    + isAuditLogEntry(value) : value is AuditLogEntry
+    + isPurchaseHistorySeries(value) : value is PurchaseHistorySeries
+    + isStringArray(value) : value is string[]
+  }
+}
+AuthResponse --> AuthRole
+api_client --> AuthResponse
+api_client --> AuthRole
+@enduml

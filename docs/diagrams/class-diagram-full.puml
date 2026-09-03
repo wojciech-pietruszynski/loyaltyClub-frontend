@@ -1,0 +1,905 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src" {
+  class "App" as App <<komponent>> #FFE0E6 {
+    + App() : JSX.Element
+  }
+  class "RouteDefinition" as RouteDefinition <<typ>> #FFFFFF {
+    - tab : Tab
+    - path : string
+    - labelKey : TranslationKey
+    - roles : AuthRole[] | null
+  }
+  class "main" as main <<moduł>> #E8F5E9 {
+  }
+  class "routes" as routes <<moduł>> #E8F5E9 {
+    - ROUTES : RouteDefinition[]
+    - DEFAULT_ROUTE : '/customers'
+    + isRouteAllowed(route, role) : boolean
+    + routesForRole(role) : RouteDefinition[]
+  }
+}
+package "src/api" {
+  class "AuthResponse" as AuthResponse <<typ>> #ECEFF1 {
+    - token : string
+    - expiresAt : number
+    - role : AuthRole
+    - country : string | null
+  }
+  enum "AuthRole" as AuthRole #FFECB3 {
+    ADMIN
+    TECHNICAL
+  }
+  class "Guard" as Guard <<typ>> #ECEFF1 {
+    = (value: unknown) => value is T
+  }
+  class "ProblemDetailBody" as ProblemDetailBody <<typ>> #ECEFF1 {
+    - detail? : unknown
+    - title? : unknown
+    - error? : unknown
+    - message? : unknown
+  }
+  class "ResponseShapeError" as ResponseShapeError #ECEFF1 {
+    - context : string
+    + constructor() : void
+  }
+  class "api/client" as api_client <<moduł>> #E8F5E9 {
+    - api : axios.create(...)
+    + getExpiresAt() : number
+    + isAuthenticated() : boolean
+    + getAuthRole() : AuthRole | null
+    + getAuthCountry() : string | null
+    + logout() : void
+    + login(username, password) : Promise<AuthResponse>
+  }
+  class "api/errors" as api_errors <<moduł>> #E8F5E9 {
+    + extractApiError(err, fallback) : string
+    + getErrorStatus(err) : number | null
+  }
+  class "api/schema" as api_schema <<moduł>> #E8F5E9 {
+    + parseObject(context, value, guard) : T
+    + parseList(context, value, guard) : T[]
+    + isCustomer(value) : value is Customer
+    + isCoupon(value) : value is Coupon
+    + isCouponTemplate(value) : value is CouponTemplate
+    + isCustomerTransaction(value) : value is CustomerTransaction
+    + isTechnicalUser(value) : value is TechnicalUser
+    + isStorePromotion(value) : value is StorePromotion
+    + isHierarchyPromotion(value) : value is HierarchyPromotion
+    + isReportsSummary(value) : value is ReportsSummary
+    + isAuditLogEntry(value) : value is AuditLogEntry
+    + isPurchaseHistorySeries(value) : value is PurchaseHistorySeries
+    + isStringArray(value) : value is string[]
+  }
+}
+package "src/components" {
+  class "AddPointsSection" as AddPointsSection <<komponent>> #FFE0E6 {
+    + AddPointsSection() : JSX.Element
+  }
+  class "AppHeader" as AppHeader <<komponent>> #FFE0E6 {
+    - appLogo : string
+    - loading : boolean
+    + AppHeader({...}) : JSX.Element
+  }
+  class "AppShell" as AppShell <<komponent>> #FFE0E6 {
+    - appLogo : string
+    + AppShell({...}) : JSX.Element
+  }
+  class "CountrySelect" as CountrySelect <<komponent>> #FFE0E6 {
+    - id? : string
+    - value : string
+    - required? : boolean
+    + onChange() : void
+    + CountrySelect({...}) : JSX.Element
+  }
+  class "CouponDialog" as CouponDialog <<typ>> #FFFFFF {
+    = 'issue' | 'template' | 'browse' | 'browse-templates' | null
+  }
+  enum "CouponFilterField" as CouponFilterField #FFECB3 {
+    reason
+    country
+    status
+  }
+  class "CouponsSection" as CouponsSection <<komponent>> #FFE0E6 {
+    + CouponsSection() : JSX.Element
+  }
+  class "CustomerBalancePanel" as CustomerBalancePanel <<komponent>> #FFE0E6 {
+    - customer : Customer
+    - history : PurchaseHistorySeries
+    - transactions : CustomerTransaction[]
+    + CustomerBalancePanel({...}) : JSX.Element
+  }
+  class "CustomerDetailsModal" as CustomerDetailsModal <<komponent>> #FFE0E6 {
+    - customer : Customer
+    + onClose() : void
+    + CustomerDetailsModal({...}) : JSX.Element
+  }
+  class "CustomerView" as CustomerView <<typ>> #FFFFFF {
+    = 'browse' | 'add' | null
+  }
+  class "CustomersSection" as CustomersSection <<komponent>> #FFE0E6 {
+    + CustomersSection() : JSX.Element
+  }
+  class "ErrorBoundary" as ErrorBoundary #ECEFF1 {
+    - t : Translator
+    - children : ReactNode
+    - state : ErrorBoundaryState
+    + getDerivedStateFromError() : ErrorBoundaryState
+    + componentDidCatch() : void
+    + render() : ReactNode
+  }
+  class "ErrorBoundaryState" as ErrorBoundaryState <<typ>> #FFFFFF {
+    - error : Error | null
+  }
+  class "FieldMessage" as FieldMessage <<komponent>> #FFE0E6 {
+    - error? : FieldError
+    + FieldMessage({...}) : JSX.Element
+  }
+  class "HierarchyPromotionsSection" as HierarchyPromotionsSection <<komponent>> #FFE0E6 {
+    + HierarchyPromotionsSection() : JSX.Element
+  }
+  class "LoginView" as LoginView <<komponent>> #FFE0E6 {
+    - theme : Theme
+    - appLogo : string
+    - appVersion : string
+    - authError : string | null
+    - t : Translator
+    + onLogin() : Promise<void>
+    + LoginView({...}) : JSX.Element
+  }
+  class "ModalShell" as ModalShell <<komponent>> #FFE0E6 {
+    - titleId : string
+    - title : ReactNode
+    - subtitle? : ReactNode
+    - error? : string | null
+    - maxWidth? : string
+    - children : ReactNode
+    + onClose() : void
+    + ModalShell({...}) : JSX.Element
+  }
+  class "PromotionView (HierarchyPromotionsSection)" as PromotionView <<typ>> #FFFFFF {
+    = 'create' | 'browse' | null
+  }
+  class "PromotionView (StorePromotionsSection)" as PromotionView_components_StorePromotionsSection <<typ>> #FFFFFF {
+    = 'create' | 'browse' | null
+  }
+  class "PromotionsPage" as PromotionsPage <<komponent>> #FFE0E6 {
+    + PromotionsPage() : JSX.Element
+  }
+  class "ReportsAuditSection" as ReportsAuditSection <<komponent>> #FFE0E6 {
+    + ReportsAuditSection() : JSX.Element
+  }
+  class "StorePromotionsSection" as StorePromotionsSection <<komponent>> #FFE0E6 {
+    + StorePromotionsSection() : JSX.Element
+  }
+  class "ToolView" as ToolView <<typ>> #FFFFFF {
+    = 'technical' | 'import' | null
+  }
+  class "ToolsSection" as ToolsSection <<komponent>> #FFE0E6 {
+    + ToolsSection() : JSX.Element
+  }
+}
+package "src/context" {
+  class "AppContextValue" as AppContextValue <<typ>> #ECEFF1 {
+    - language : Language
+    - theme : Theme
+    - t : Translator
+    - format : Formatters
+    - config : { countries: string[]; couponPrefixes: string[]; }
+    - data : { customers: CustomersApi; coupons: CouponsApi; promotions: P...
+    + setLanguage() : void
+    + setTheme() : void
+    + tPlural() : string
+    + reasonLabel() : string
+    + statusLabel() : string
+    + session() : void; }
+    + notifySuccess() : void
+    + notifyError() : void
+  }
+  class "AppProvider" as AppProvider <<komponent>> #FFE0E6 {
+    - language : Language
+    - theme : Theme
+    - children : ReactNode
+    + setLanguage() : void
+    + setTheme() : void
+    + session() : void; }
+    + onNotification() : void
+    + AppProvider({...}) : JSX.Element
+  }
+  class "Notification" as Notification <<typ>> #ECEFF1 {
+    - type : 'success' | 'error'
+    - message : string
+  }
+  class "useAppContext" as useAppContext <<hook>> #EDE7F6 {
+    + useAppContext() : AppContextValue
+  }
+}
+package "src/hooks" {
+  class "ApiErrorMessage" as ApiErrorMessage <<typ>> #E0F7FA {
+    = (err: unknown, fallbackKey: TranslationKey) => string
+  }
+  class "AuthApi" as AuthApi <<typ>> #E0F7FA {
+    - loggedIn : boolean
+    - authRole : AuthRole | null
+    - authCountry : string | null
+    - expiresAt : number
+    - authError : string | null
+    - setAuthError : StateSetter<string | null>
+    + login() : Promise<boolean>
+    + logout() : void
+  }
+  class "CouponsApi" as CouponsApi <<typ>> #E0F7FA {
+    - coupons : Coupon[]
+    - couponTemplates : CouponTemplate[]
+    - loading : boolean
+    - error : string | null
+    - setCoupons : StateSetter<Coupon[]>
+    - setCouponTemplates : StateSetter<CouponTemplate[]>
+    - setError : StateSetter<string | null>
+    + fetchCoupons() : Promise<void>
+    + ensureCoupons() : Promise<void>
+    + fetchTemplates() : Promise<void>
+    + ensureTemplates() : Promise<void>
+    + issueCoupon() : Promise<boolean>
+    + createTemplate() : Promise<boolean>
+  }
+  class "CustomersApi" as CustomersApi <<typ>> #E0F7FA {
+    - customers : Customer[]
+    - loading : boolean
+    - error : string | null
+    - setCustomers : StateSetter<Customer[]>
+    - setError : StateSetter<string | null>
+    + fetchCustomers() : Promise<void>
+    + ensureCustomers() : Promise<void>
+    + addCustomer() : Promise<boolean>
+    + addPoints() : Promise<boolean>
+    + updateCustomer() : Promise<boolean>
+    + fetchTransactions() : Promise<CustomerTransaction[]>
+    + fetchCoupons() : Promise<Coupon[]>
+    + fetchPurchaseHistory() : Promise<PurchaseHistorySeries>
+    + importCustomers() : Promise<number | null>
+  }
+  class "HierarchyPromotionsApi" as HierarchyPromotionsApi <<typ>> #E0F7FA {
+    - hierarchyPromotions : HierarchyPromotion[]
+    - loading : boolean
+    - error : string | null
+    - setError : StateSetter<string | null>
+    + fetchHierarchyPromotions() : Promise<void>
+    + ensureHierarchyPromotions() : Promise<void>
+    + saveHierarchyPromotion() : Promise<boolean>
+    + toggleHierarchyPromotion() : Promise<boolean>
+  }
+  class "PromotionsApi" as PromotionsApi <<typ>> #E0F7FA {
+    - storePromotions : StorePromotion[]
+    - availableCountries : string[]
+    - availableCouponPrefixes : string[]
+    - loading : boolean
+    - error : string | null
+    - setError : StateSetter<string | null>
+    + fetchPromotions() : Promise<void>
+    + ensurePromotions() : Promise<void>
+    + fetchMetadata() : Promise<void>
+    + ensureMetadata() : Promise<void>
+    + savePromotion() : Promise<boolean>
+    + togglePromotion() : Promise<boolean>
+  }
+  class "ReportsApi" as ReportsApi <<typ>> #E0F7FA {
+    - summary : ReportsSummary | null
+    - auditLogs : AuditLogEntry[]
+    - loading : boolean
+    - exporting : boolean
+    - error : string | null
+    - setError : StateSetter<string | null>
+    + fetchSummary() : Promise<void>
+    + fetchAuditLogs() : Promise<void>
+    + exportCsv() : Promise<boolean>
+  }
+  class "TechnicalUsersApi" as TechnicalUsersApi <<typ>> #E0F7FA {
+    - technicalUsers : TechnicalUser[]
+    - loading : boolean
+    - error : string | null
+    - setError : StateSetter<string | null>
+    + fetchTechnicalUsers() : Promise<void>
+    + ensureTechnicalUsers() : Promise<void>
+    + createTechnicalUser() : Promise<boolean>
+    + toggleTechnicalUser() : Promise<boolean>
+    + updatePassword() : Promise<boolean>
+  }
+  class "useApiErrorMessage" as useApiErrorMessage <<hook>> #EDE7F6 {
+    + useApiErrorMessage(t) : ApiErrorMessage
+  }
+  class "useAuth" as useAuth <<hook>> #EDE7F6 {
+    + useAuth(t) : AuthApi
+  }
+  class "useCoupons" as useCoupons <<hook>> #EDE7F6 {
+    + useCoupons(t) : CouponsApi
+  }
+  class "useCustomers" as useCustomers <<hook>> #EDE7F6 {
+    + useCustomers(t) : CustomersApi
+  }
+  class "useEnsure" as useEnsure <<hook>> #EDE7F6 {
+    + useEnsure(fetcher) : ()
+  }
+  class "useHierarchyPromotions" as useHierarchyPromotions <<hook>> #EDE7F6 {
+    + useHierarchyPromotions(t) : HierarchyPromotionsApi
+  }
+  class "useModalA11y" as useModalA11y <<hook>> #EDE7F6 {
+    + useModalA11y(isOpen, onClose) : void
+  }
+  class "usePromotions" as usePromotions <<hook>> #EDE7F6 {
+    + usePromotions(t) : PromotionsApi
+  }
+  class "useReports" as useReports <<hook>> #EDE7F6 {
+    + useReports(t) : ReportsApi
+  }
+  class "useTechnicalUsers" as useTechnicalUsers <<hook>> #EDE7F6 {
+    + useTechnicalUsers(t) : TechnicalUsersApi
+  }
+}
+package "src/i18n" {
+  class "Formatters" as Formatters <<typ>> #ECEFF1 {
+    - locale : string
+    + formatDate() : string
+    + formatDateTime() : string
+    + formatNumber() : string
+    + formatCurrency() : string
+    + pluralCategory() : Intl.LDMLPluralRule
+  }
+  enum "Language" as Language #FFECB3 {
+    pl
+    en
+    de
+  }
+  enum "PluralTranslationKey" as PluralTranslationKey #FFECB3 {
+    customersFound
+    couponsFound
+    importedCustomers
+  }
+  class "TranslationKey" as TranslationKey <<typ>> #ECEFF1 {
+    = keyof typeof pl
+  }
+  class "TranslationMap" as TranslationMap <<typ>> #ECEFF1 {
+    = Record<TranslationKey, string>
+  }
+  class "i18n/de" as i18n_de <<moduł>> #E8F5E9 {
+    - de : TranslationMap
+  }
+  class "i18n/en" as i18n_en <<moduł>> #E8F5E9 {
+    - en : TranslationMap
+  }
+  class "i18n/format" as i18n_format <<moduł>> #E8F5E9 {
+    + createFormatters(language) : Formatters
+  }
+  class "i18n/index" as i18n_index <<moduł>> #E8F5E9 {
+    + translate(language, key, params) : string
+    + translatePlural(language, key, count, params) : string
+  }
+  class "i18n/pl" as i18n_pl <<moduł>> #E8F5E9 {
+    - pl : {...}
+  }
+}
+package "src/lib" {
+  class "FieldError" as FieldError <<typ>> #ECEFF1 {
+    - key : TranslationKey
+    - params? : Record<string, string | number>
+  }
+  class "FieldErrors" as FieldErrors <<typ>> #ECEFF1 {
+    = Partial<Record<keyof T, FieldError>>
+  }
+  class "lib/numbers" as lib_numbers <<moduł>> #E8F5E9 {
+    + toNumberOrNull(value) : number | null
+    + toNumber(value, fallback) : number
+    + toIntegerOrNull(value) : number | null
+    + toInteger(value, fallback) : number
+    + toTextOrNull(value) : string | null
+  }
+  class "lib/validation" as lib_validation <<moduł>> #E8F5E9 {
+    + requiredText(value, maxLength) : FieldError | null
+    + emailRule(value) : FieldError | null
+    + phoneRule(value) : FieldError | null
+    + positiveNumberRule(value, {...}) : FieldError | null
+    + nonNegativeNumberRule(value) : FieldError | null
+    + dateRangeRule(startsAt, endsAt) : FieldError | null
+    + hasErrors(errors) : boolean
+    + validateNewCustomer(form) : FieldErrors<NewCustomerFormState>
+    + validateCustomerEdit(form) : FieldErrors<CustomerEditFormState>
+    + validateNewPoints(form) : FieldErrors<NewPointsFormState>
+    + validateCouponForm(form) : FieldErrors<CouponFormState>
+    + validateCouponTemplate(form) : FieldErrors<CouponTemplateFormState>
+    + validatePromotion(form) : FieldErrors<PromotionFormState>
+    + validateHierarchyPromotion(form) : FieldErrors<HierarchyPromotionFormState>
+  }
+}
+package "src/types" {
+  interface "AuditLogEntry" as AuditLogEntry <<interfejs>> #FFF3C4 {
+    - id : number
+    - timestamp : string
+    - username : string
+    - role : string
+    - action : string
+    - resourceType : string
+    - resourceId : string | null
+  }
+  interface "Coupon" as Coupon <<interfejs>> #FFF3C4 {
+    - id : number
+    - couponCode : string
+    - customerId : number
+    - customerName : string
+    - country : string
+    - couponValue : number
+    - minimumPurchaseValue : number
+    - requiredPoints : number
+    - validityDays : number
+    - couponPrefix : string
+    - reason : 'POINTS_EXCHANGE' | 'COMPLAINT'
+    - status : 'ACTIVE' | 'USED' | 'EXPIRED'
+    - issuedAt : string
+    - expiresAt : string
+  }
+  class "CouponFormState" as CouponFormState <<typ>> #E3F2FD {
+    - customerId : string
+    - couponTemplateId : string
+    - reason : string
+  }
+  interface "CouponTemplate" as CouponTemplate <<interfejs>> #FFF3C4 {
+    - id : number
+    - couponValue : number
+    - minimumPurchaseValue : number
+    - requiredPoints : number
+    - country : string
+    - validityDays : number
+    - couponPrefix : string
+  }
+  class "CouponTemplateFormState" as CouponTemplateFormState <<typ>> #E3F2FD {
+    - couponValue : string
+    - minimumPurchaseValue : string
+    - requiredPoints : string
+    - country : string
+    - validityDays : string
+    - couponPrefix : string
+  }
+  interface "Customer" as Customer <<interfejs>> #FFF3C4 {
+    - id : number
+    - firstName : string
+    - lastName : string
+    - email : string
+    - customerNumber : string
+    - phoneNumber : string
+    - country : string
+    - loyaltyPoints : number
+    - loyaltyTierCode? : string
+    - referralCode? : string | null
+  }
+  class "CustomerCouponFormState" as CustomerCouponFormState <<typ>> #E3F2FD {
+    - couponTemplateId : string
+    - reason : string
+  }
+  class "CustomerEditFormState" as CustomerEditFormState <<typ>> #E3F2FD {
+    - firstName : string
+    - lastName : string
+    - email : string
+    - customerNumber : string
+    - phoneNumber : string
+    - country : string
+  }
+  enum "CustomerModalTab" as CustomerModalTab #FFECB3 {
+    profile
+    balance
+    issue-coupon
+    coupon-history
+  }
+  interface "CustomerTransaction" as CustomerTransaction <<interfejs>> #FFF3C4 {
+    - id : number
+    - points : number
+    - description : string
+    - timestamp : string
+    - availableFrom : string | null
+  }
+  interface "HierarchyPromotion" as HierarchyPromotion <<interfejs>> #FFF3C4 {
+    - id : number
+    - name : string
+    - country : string
+    - hierarchy : string | null
+    - productClass : string | null
+    - subclass : string | null
+    - type : HierarchyPromotionType
+    - multiplier : number | null
+    - startsAt : string
+    - endsAt : string | null
+    - enabled : boolean
+  }
+  class "HierarchyPromotionFormState" as HierarchyPromotionFormState <<typ>> #E3F2FD {
+    - id : number | null
+    - name : string
+    - country : string
+    - hierarchy : string
+    - productClass : string
+    - subclass : string
+    - type : 'MULTIPLIER' | 'EXCLUSION'
+    - multiplier : string
+    - startsAt : string
+    - endsAt : string
+    - enabled : boolean
+  }
+  enum "HierarchyPromotionType" as HierarchyPromotionType #FFECB3 {
+    MULTIPLIER
+    EXCLUSION
+  }
+  class "NewCustomerFormState" as NewCustomerFormState <<typ>> #E3F2FD {
+    - firstName : string
+    - lastName : string
+    - email : string
+    - customerNumber : string
+    - phoneNumber : string
+    - country : string
+    - referrerCustomerNumber : string
+  }
+  class "NewPointsFormState" as NewPointsFormState <<typ>> #E3F2FD {
+    - customerId : string
+    - points : string
+    - description : string
+  }
+  class "PromotionFormState" as PromotionFormState <<typ>> #E3F2FD {
+    - id : number | null
+    - name : string
+    - country : string
+    - pointsPerCurrency : string
+    - startsAt : string
+    - endsAt : string
+    - enabled : boolean
+  }
+  class "PurchaseHistoryPoint" as PurchaseHistoryPoint <<typ>> #E3F2FD {
+    - date : string
+    - total : number
+  }
+  class "PurchaseHistorySeries" as PurchaseHistorySeries <<typ>> #E3F2FD {
+    - points : PurchaseHistoryPoint[]
+    - maxTotal : number
+  }
+  interface "ReportsSummary" as ReportsSummary <<interfejs>> #FFF3C4 {
+    - scope : string | null
+    - customerCount : number
+    - totalLoyaltyPoints : number
+    - transactionsLast30Days : number
+  }
+  class "StateSetter" as StateSetter <<typ>> #E3F2FD {
+    = Dispatch<SetStateAction<T>>
+  }
+  interface "StorePromotion" as StorePromotion <<interfejs>> #FFF3C4 {
+    - id : number
+    - name : string
+    - country : string
+    - pointsPerCurrency : number
+    - startsAt : string
+    - endsAt : string | null
+    - enabled : boolean
+  }
+  enum "Tab" as Tab #FFECB3 {
+    customers
+    add-points
+    coupons
+    promotions
+    reports
+    tools
+  }
+  interface "TechnicalUser" as TechnicalUser <<interfejs>> #FFF3C4 {
+    - id : number
+    - username : string
+    - passwordPreview : string | null
+    - country : string
+    - enabled : boolean
+  }
+  class "TechnicalUserFormState" as TechnicalUserFormState <<typ>> #E3F2FD {
+    - username : string
+    - password : string
+    - country : string
+    - enabled : boolean
+  }
+  enum "Theme" as Theme #FFECB3 {
+    light
+    dark
+  }
+  class "Translator" as Translator <<typ>> #E3F2FD {
+    = (key: TranslationKey, params?: Record<string, string | number...
+  }
+}
+AddPointsSection ..> FieldErrors
+AddPointsSection ..> FieldMessage
+AddPointsSection ..> NewPointsFormState
+AddPointsSection ..> lib_validation
+AddPointsSection ..> useAppContext
+ApiErrorMessage --> TranslationKey
+App ..> AppProvider
+App ..> AppShell
+App ..> ErrorBoundary
+App ..> Language
+App ..> LoginView
+App ..> Notification
+App ..> Theme
+App ..> useAuth
+AppContextValue --> CouponsApi
+AppContextValue --> CustomersApi
+AppContextValue --> Formatters
+AppContextValue --> Language
+AppContextValue --> Theme
+AppContextValue --> Translator
+AppHeader ..> Language
+AppHeader ..> useAppContext
+AppProvider ..> AppContextValue
+AppProvider ..> AuthRole
+AppProvider ..> Coupon
+AppProvider --> Language
+AppProvider ..> PluralTranslationKey
+AppProvider --> Theme
+AppProvider ..> TranslationKey
+AppProvider ..> api_client
+AppProvider ..> useAppContext
+AppProvider ..> useCoupons
+AppProvider ..> useCustomers
+AppProvider ..> useHierarchyPromotions
+AppProvider ..> usePromotions
+AppProvider ..> useReports
+AppProvider ..> useTechnicalUsers
+AppShell ..> AppHeader
+AppShell ..> Tab
+AppShell ..> routes
+AppShell ..> useAppContext
+AuthApi --> AuthRole
+AuthApi --> StateSetter
+AuthResponse --> AuthRole
+CountrySelect ..> useAppContext
+CouponsApi "1" --> "*" Coupon
+CouponsApi "1" --> "*" CouponTemplate
+CouponsApi "1" --> "*" StateSetter
+CouponsApi --> StateSetter
+CouponsSection ..> CountrySelect
+CouponsSection ..> Coupon
+CouponsSection ..> CouponFormState
+CouponsSection ..> CouponTemplateFormState
+CouponsSection ..> FieldErrors
+CouponsSection ..> FieldMessage
+CouponsSection ..> ModalShell
+CouponsSection ..> lib_validation
+CouponsSection ..> useAppContext
+CustomerBalancePanel --> Customer
+CustomerBalancePanel "1" --> "*" CustomerTransaction
+CustomerBalancePanel --> PurchaseHistorySeries
+CustomerBalancePanel ..> useAppContext
+CustomerDetailsModal ..> CountrySelect
+CustomerDetailsModal ..> Coupon
+CustomerDetailsModal --> Customer
+CustomerDetailsModal ..> CustomerBalancePanel
+CustomerDetailsModal ..> CustomerCouponFormState
+CustomerDetailsModal ..> CustomerEditFormState
+CustomerDetailsModal ..> CustomerModalTab
+CustomerDetailsModal ..> CustomerTransaction
+CustomerDetailsModal ..> FieldErrors
+CustomerDetailsModal ..> FieldMessage
+CustomerDetailsModal ..> ModalShell
+CustomerDetailsModal ..> PurchaseHistorySeries
+CustomerDetailsModal ..> lib_validation
+CustomerDetailsModal ..> useAppContext
+CustomersApi "1" --> "*" Coupon
+CustomersApi "1" --> "*" Customer
+CustomersApi "1" --> "*" CustomerTransaction
+CustomersApi --> PurchaseHistorySeries
+CustomersApi "1" --> "*" StateSetter
+CustomersApi --> StateSetter
+CustomersSection ..> CountrySelect
+CustomersSection ..> Customer
+CustomersSection ..> CustomerDetailsModal
+CustomersSection ..> FieldErrors
+CustomersSection ..> FieldMessage
+CustomersSection ..> ModalShell
+CustomersSection ..> NewCustomerFormState
+CustomersSection ..> lib_validation
+CustomersSection ..> useAppContext
+ErrorBoundary --> ErrorBoundaryState
+ErrorBoundary --> Translator
+FieldError --> TranslationKey
+FieldErrors "1" --> "*" FieldError
+FieldMessage --> FieldError
+FieldMessage ..> lib_validation
+FieldMessage ..> useAppContext
+HierarchyPromotion --> HierarchyPromotionType
+HierarchyPromotionsApi "1" --> "*" HierarchyPromotion
+HierarchyPromotionsApi --> StateSetter
+HierarchyPromotionsSection ..> CountrySelect
+HierarchyPromotionsSection ..> FieldErrors
+HierarchyPromotionsSection ..> FieldMessage
+HierarchyPromotionsSection ..> HierarchyPromotion
+HierarchyPromotionsSection ..> HierarchyPromotionFormState
+HierarchyPromotionsSection ..> ModalShell
+HierarchyPromotionsSection ..> lib_validation
+HierarchyPromotionsSection ..> useAppContext
+LoginView --> Theme
+LoginView --> Translator
+ModalShell ..> useAppContext
+ModalShell ..> useModalA11y
+PromotionsApi --> StateSetter
+PromotionsApi "1" --> "*" StorePromotion
+PromotionsPage ..> HierarchyPromotionsSection
+PromotionsPage ..> StorePromotionsSection
+PurchaseHistorySeries "1" --> "*" PurchaseHistoryPoint
+ReportsApi "1" --> "*" AuditLogEntry
+ReportsApi --> ReportsSummary
+ReportsApi --> StateSetter
+ReportsAuditSection ..> useAppContext
+RouteDefinition "1" --> "*" AuthRole
+RouteDefinition --> Tab
+RouteDefinition --> TranslationKey
+StorePromotionsSection ..> CountrySelect
+StorePromotionsSection ..> FieldErrors
+StorePromotionsSection ..> FieldMessage
+StorePromotionsSection ..> ModalShell
+StorePromotionsSection ..> PromotionFormState
+StorePromotionsSection ..> StorePromotion
+StorePromotionsSection ..> lib_validation
+StorePromotionsSection ..> useAppContext
+TechnicalUsersApi --> StateSetter
+TechnicalUsersApi "1" --> "*" TechnicalUser
+ToolsSection ..> CountrySelect
+ToolsSection ..> FieldError
+ToolsSection ..> FieldErrors
+ToolsSection ..> FieldMessage
+ToolsSection ..> ModalShell
+ToolsSection ..> TechnicalUser
+ToolsSection ..> TechnicalUserFormState
+ToolsSection ..> lib_validation
+ToolsSection ..> useAppContext
+TranslationMap "1" --> "*" TranslationKey
+Translator "1" --> "*" TranslationKey
+api_client --> AuthResponse
+api_client --> AuthRole
+api_schema --> AuditLogEntry
+api_schema --> Coupon
+api_schema --> CouponTemplate
+api_schema --> Customer
+api_schema --> CustomerTransaction
+api_schema --> HierarchyPromotion
+api_schema --> PurchaseHistorySeries
+api_schema --> ReportsSummary
+api_schema --> StorePromotion
+api_schema --> TechnicalUser
+i18n_de --> TranslationMap
+i18n_en --> TranslationMap
+i18n_format --> Formatters
+i18n_format ..> Language
+i18n_index ..> Language
+i18n_index ..> TranslationKey
+i18n_index ..> TranslationMap
+i18n_index ..> i18n_de
+i18n_index ..> i18n_en
+i18n_index ..> i18n_format
+i18n_index ..> i18n_pl
+lib_validation --> CouponFormState
+lib_validation --> CouponTemplateFormState
+lib_validation --> CustomerEditFormState
+lib_validation --> FieldError
+lib_validation --> FieldErrors
+lib_validation --> HierarchyPromotionFormState
+lib_validation --> NewCustomerFormState
+lib_validation --> NewPointsFormState
+lib_validation --> PromotionFormState
+lib_validation --> TechnicalUserFormState
+lib_validation ..> TranslationKey
+lib_validation ..> lib_numbers
+routes ..> AuthRole
+routes "1" --> "*" RouteDefinition
+routes ..> Tab
+routes ..> TranslationKey
+routes ..> api_client
+useApiErrorMessage --> ApiErrorMessage
+useApiErrorMessage ..> ResponseShapeError
+useApiErrorMessage ..> TranslationKey
+useApiErrorMessage ..> Translator
+useApiErrorMessage ..> api_errors
+useApiErrorMessage ..> api_schema
+useAppContext --> AppContextValue
+useAppContext ..> AuthRole
+useAppContext ..> Coupon
+useAppContext ..> CouponsApi
+useAppContext ..> CustomersApi
+useAppContext ..> Formatters
+useAppContext ..> HierarchyPromotionsApi
+useAppContext ..> Language
+useAppContext ..> PluralTranslationKey
+useAppContext ..> PromotionsApi
+useAppContext ..> ReportsApi
+useAppContext ..> TechnicalUsersApi
+useAppContext ..> Theme
+useAppContext ..> Translator
+useAppContext ..> api_client
+useAppContext ..> useCoupons
+useAppContext ..> useCustomers
+useAppContext ..> useHierarchyPromotions
+useAppContext ..> usePromotions
+useAppContext ..> useReports
+useAppContext ..> useTechnicalUsers
+useAuth --> AuthApi
+useAuth ..> AuthRole
+useAuth ..> StateSetter
+useAuth ..> Translator
+useAuth ..> api_client
+useAuth ..> useApiErrorMessage
+useCoupons ..> Coupon
+useCoupons ..> CouponFormState
+useCoupons ..> CouponTemplate
+useCoupons ..> CouponTemplateFormState
+useCoupons --> CouponsApi
+useCoupons ..> StateSetter
+useCoupons ..> Translator
+useCoupons ..> api_client
+useCoupons ..> api_schema
+useCoupons ..> lib_numbers
+useCoupons ..> useApiErrorMessage
+useCoupons ..> useEnsure
+useCustomers ..> Coupon
+useCustomers ..> Customer
+useCustomers ..> CustomerEditFormState
+useCustomers ..> CustomerTransaction
+useCustomers --> CustomersApi
+useCustomers ..> NewCustomerFormState
+useCustomers ..> PurchaseHistorySeries
+useCustomers ..> StateSetter
+useCustomers ..> Translator
+useCustomers ..> api_client
+useCustomers ..> api_schema
+useCustomers ..> lib_numbers
+useCustomers ..> useApiErrorMessage
+useCustomers ..> useEnsure
+useHierarchyPromotions ..> HierarchyPromotion
+useHierarchyPromotions ..> HierarchyPromotionFormState
+useHierarchyPromotions --> HierarchyPromotionsApi
+useHierarchyPromotions ..> StateSetter
+useHierarchyPromotions ..> Translator
+useHierarchyPromotions ..> api_client
+useHierarchyPromotions ..> api_schema
+useHierarchyPromotions ..> lib_numbers
+useHierarchyPromotions ..> useApiErrorMessage
+useHierarchyPromotions ..> useEnsure
+usePromotions ..> PromotionFormState
+usePromotions --> PromotionsApi
+usePromotions ..> StateSetter
+usePromotions ..> StorePromotion
+usePromotions ..> Translator
+usePromotions ..> api_client
+usePromotions ..> api_schema
+usePromotions ..> lib_numbers
+usePromotions ..> useApiErrorMessage
+usePromotions ..> useEnsure
+useReports ..> AuditLogEntry
+useReports --> ReportsApi
+useReports ..> ReportsSummary
+useReports ..> StateSetter
+useReports ..> Translator
+useReports ..> api_client
+useReports ..> api_schema
+useReports ..> useApiErrorMessage
+useTechnicalUsers ..> StateSetter
+useTechnicalUsers ..> TechnicalUser
+useTechnicalUsers ..> TechnicalUserFormState
+useTechnicalUsers --> TechnicalUsersApi
+useTechnicalUsers ..> Translator
+useTechnicalUsers ..> api_client
+useTechnicalUsers ..> api_schema
+useTechnicalUsers ..> useApiErrorMessage
+useTechnicalUsers ..> useEnsure
+@enduml

@@ -1,0 +1,70 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src/hooks" {
+  class "PromotionsApi" as PromotionsApi <<typ>> #E0F7FA {
+    - storePromotions : StorePromotion[]
+    - availableCountries : string[]
+    - availableCouponPrefixes : string[]
+    - loading : boolean
+    - error : string | null
+    - setError : StateSetter<string | null>
+    + fetchPromotions() : Promise<void>
+    + ensurePromotions() : Promise<void>
+    + fetchMetadata() : Promise<void>
+    + ensureMetadata() : Promise<void>
+    + savePromotion() : Promise<boolean>
+    + togglePromotion() : Promise<boolean>
+  }
+  class "ReportsApi" as ReportsApi <<typ>> #E0F7FA {
+    - summary : ReportsSummary | null
+    - auditLogs : AuditLogEntry[]
+    - loading : boolean
+    - exporting : boolean
+    - error : string | null
+    - setError : StateSetter<string | null>
+    + fetchSummary() : Promise<void>
+    + fetchAuditLogs() : Promise<void>
+    + exportCsv() : Promise<boolean>
+  }
+  class "TechnicalUsersApi" as TechnicalUsersApi <<typ>> #E0F7FA {
+    - technicalUsers : TechnicalUser[]
+    - loading : boolean
+    - error : string | null
+    - setError : StateSetter<string | null>
+    + fetchTechnicalUsers() : Promise<void>
+    + ensureTechnicalUsers() : Promise<void>
+    + createTechnicalUser() : Promise<boolean>
+    + toggleTechnicalUser() : Promise<boolean>
+    + updatePassword() : Promise<boolean>
+  }
+  class "usePromotions" as usePromotions <<hook>> #EDE7F6 {
+    + usePromotions(t) : PromotionsApi
+  }
+  class "useReports" as useReports <<hook>> #EDE7F6 {
+    + useReports(t) : ReportsApi
+  }
+  class "useTechnicalUsers" as useTechnicalUsers <<hook>> #EDE7F6 {
+    + useTechnicalUsers(t) : TechnicalUsersApi
+  }
+}
+usePromotions --> PromotionsApi
+useReports --> ReportsApi
+useTechnicalUsers --> TechnicalUsersApi
+@enduml

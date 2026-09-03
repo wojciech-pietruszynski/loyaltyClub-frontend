@@ -1,0 +1,50 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src/components" {
+  class "LoginView" as LoginView <<komponent>> #FFE0E6 {
+    - theme : Theme
+    - appLogo : string
+    - appVersion : string
+    - authError : string | null
+    - t : Translator
+    + onLogin() : Promise<void>
+    + LoginView({...}) : JSX.Element
+  }
+  class "PromotionView (StorePromotionsSection)" as PromotionView_components_StorePromotionsSection <<typ>> #FFFFFF {
+    = 'create' | 'browse' | null
+  }
+  class "PromotionsPage" as PromotionsPage <<komponent>> #FFE0E6 {
+    + PromotionsPage() : JSX.Element
+  }
+  class "ReportsAuditSection" as ReportsAuditSection <<komponent>> #FFE0E6 {
+    + ReportsAuditSection() : JSX.Element
+  }
+  class "StorePromotionsSection" as StorePromotionsSection <<komponent>> #FFE0E6 {
+    + StorePromotionsSection() : JSX.Element
+  }
+  class "ToolView" as ToolView <<typ>> #FFFFFF {
+    = 'technical' | 'import' | null
+  }
+  class "ToolsSection" as ToolsSection <<komponent>> #FFE0E6 {
+    + ToolsSection() : JSX.Element
+  }
+}
+PromotionsPage ..> StorePromotionsSection
+@enduml

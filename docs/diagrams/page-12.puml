@@ -1,0 +1,56 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src/lib" {
+  class "FieldError" as FieldError <<typ>> #ECEFF1 {
+    - key : TranslationKey
+    - params? : Record<string, string | number>
+  }
+  class "FieldErrors" as FieldErrors <<typ>> #ECEFF1 {
+    = Partial<Record<keyof T, FieldError>>
+  }
+  class "lib/numbers" as lib_numbers <<moduł>> #E8F5E9 {
+    + toNumberOrNull(value) : number | null
+    + toNumber(value, fallback) : number
+    + toIntegerOrNull(value) : number | null
+    + toInteger(value, fallback) : number
+    + toTextOrNull(value) : string | null
+  }
+  class "lib/validation" as lib_validation <<moduł>> #E8F5E9 {
+    + requiredText(value, maxLength) : FieldError | null
+    + emailRule(value) : FieldError | null
+    + phoneRule(value) : FieldError | null
+    + positiveNumberRule(value, {...}) : FieldError | null
+    + nonNegativeNumberRule(value) : FieldError | null
+    + dateRangeRule(startsAt, endsAt) : FieldError | null
+    + hasErrors(errors) : boolean
+    + validateNewCustomer(form) : FieldErrors<NewCustomerFormState>
+    + validateCustomerEdit(form) : FieldErrors<CustomerEditFormState>
+    + validateNewPoints(form) : FieldErrors<NewPointsFormState>
+    + validateCouponForm(form) : FieldErrors<CouponFormState>
+    + validateCouponTemplate(form) : FieldErrors<CouponTemplateFormState>
+    + validatePromotion(form) : FieldErrors<PromotionFormState>
+    + validateHierarchyPromotion(form) : FieldErrors<HierarchyPromotionFormState>
+  }
+}
+FieldErrors "1" --> "*" FieldError
+lib_validation --> FieldError
+lib_validation --> FieldErrors
+lib_validation ..> lib_numbers
+@enduml

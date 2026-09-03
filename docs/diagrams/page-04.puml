@@ -1,0 +1,90 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src/hooks" {
+  class "ApiErrorMessage" as ApiErrorMessage <<typ>> #E0F7FA {
+    = (err: unknown, fallbackKey: TranslationKey) => string
+  }
+  class "AuthApi" as AuthApi <<typ>> #E0F7FA {
+    - loggedIn : boolean
+    - authRole : AuthRole | null
+    - authCountry : string | null
+    - expiresAt : number
+    - authError : string | null
+    - setAuthError : StateSetter<string | null>
+    + login() : Promise<boolean>
+    + logout() : void
+  }
+  class "CouponsApi" as CouponsApi <<typ>> #E0F7FA {
+    - coupons : Coupon[]
+    - couponTemplates : CouponTemplate[]
+    - loading : boolean
+    - error : string | null
+    - setCoupons : StateSetter<Coupon[]>
+    - setCouponTemplates : StateSetter<CouponTemplate[]>
+    - setError : StateSetter<string | null>
+    + fetchCoupons() : Promise<void>
+    + ensureCoupons() : Promise<void>
+    + fetchTemplates() : Promise<void>
+    + ensureTemplates() : Promise<void>
+    + issueCoupon() : Promise<boolean>
+    + createTemplate() : Promise<boolean>
+  }
+  class "CustomersApi" as CustomersApi <<typ>> #E0F7FA {
+    - customers : Customer[]
+    - loading : boolean
+    - error : string | null
+    - setCustomers : StateSetter<Customer[]>
+    - setError : StateSetter<string | null>
+    + fetchCustomers() : Promise<void>
+    + ensureCustomers() : Promise<void>
+    + addCustomer() : Promise<boolean>
+    + addPoints() : Promise<boolean>
+    + updateCustomer() : Promise<boolean>
+    + fetchTransactions() : Promise<CustomerTransaction[]>
+    + fetchCoupons() : Promise<Coupon[]>
+    + fetchPurchaseHistory() : Promise<PurchaseHistorySeries>
+    + importCustomers() : Promise<number | null>
+  }
+  class "useApiErrorMessage" as useApiErrorMessage <<hook>> #EDE7F6 {
+    + useApiErrorMessage(t) : ApiErrorMessage
+  }
+  class "useAuth" as useAuth <<hook>> #EDE7F6 {
+    + useAuth(t) : AuthApi
+  }
+  class "useCoupons" as useCoupons <<hook>> #EDE7F6 {
+    + useCoupons(t) : CouponsApi
+  }
+  class "useCustomers" as useCustomers <<hook>> #EDE7F6 {
+    + useCustomers(t) : CustomersApi
+  }
+  class "useEnsure" as useEnsure <<hook>> #EDE7F6 {
+    + useEnsure(fetcher) : ()
+  }
+}
+useApiErrorMessage --> ApiErrorMessage
+useAuth --> AuthApi
+useAuth ..> useApiErrorMessage
+useCoupons --> CouponsApi
+useCoupons ..> useApiErrorMessage
+useCoupons ..> useEnsure
+useCustomers --> CustomersApi
+useCustomers ..> useApiErrorMessage
+useCustomers ..> useEnsure
+@enduml

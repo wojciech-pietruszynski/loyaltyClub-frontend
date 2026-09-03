@@ -1,0 +1,62 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src/components" {
+  class "CountrySelect" as CountrySelect <<komponent>> #FFE0E6 {
+    - id? : string
+    - value : string
+    - required? : boolean
+    + onChange() : void
+    + CountrySelect({...}) : JSX.Element
+  }
+  class "CouponDialog" as CouponDialog <<typ>> #FFFFFF {
+    = 'issue' | 'template' | 'browse' | 'browse-templates' | null
+  }
+  enum "CouponFilterField" as CouponFilterField #FFECB3 {
+    reason
+    country
+    status
+  }
+  class "CustomerDetailsModal" as CustomerDetailsModal <<komponent>> #FFE0E6 {
+    - customer : Customer
+    + onClose() : void
+    + CustomerDetailsModal({...}) : JSX.Element
+  }
+  class "ErrorBoundaryState" as ErrorBoundaryState <<typ>> #FFFFFF {
+    - error : Error | null
+  }
+  class "FieldMessage" as FieldMessage <<komponent>> #FFE0E6 {
+    - error? : FieldError
+    + FieldMessage({...}) : JSX.Element
+  }
+  class "ModalShell" as ModalShell <<komponent>> #FFE0E6 {
+    - titleId : string
+    - title : ReactNode
+    - subtitle? : ReactNode
+    - error? : string | null
+    - maxWidth? : string
+    - children : ReactNode
+    + onClose() : void
+    + ModalShell({...}) : JSX.Element
+  }
+}
+CustomerDetailsModal ..> CountrySelect
+CustomerDetailsModal ..> FieldMessage
+CustomerDetailsModal ..> ModalShell
+@enduml
