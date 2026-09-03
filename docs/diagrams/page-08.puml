@@ -1,0 +1,46 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src/components" {
+  class "AddPointsSection" as AddPointsSection <<komponent>> #FFE0E6 {
+    + AddPointsSection() : JSX.Element
+  }
+  class "CouponsSection" as CouponsSection <<komponent>> #FFE0E6 {
+    + CouponsSection() : JSX.Element
+  }
+  class "CustomerBalancePanel" as CustomerBalancePanel <<komponent>> #FFE0E6 {
+    - customer : Customer
+    - history : PurchaseHistorySeries
+    - transactions : CustomerTransaction[]
+    + CustomerBalancePanel({...}) : JSX.Element
+  }
+  class "CustomerView" as CustomerView <<typ>> #FFFFFF {
+    = 'browse' | 'add' | null
+  }
+  class "CustomersSection" as CustomersSection <<komponent>> #FFE0E6 {
+    + CustomersSection() : JSX.Element
+  }
+  class "HierarchyPromotionsSection" as HierarchyPromotionsSection <<komponent>> #FFE0E6 {
+    + HierarchyPromotionsSection() : JSX.Element
+  }
+  class "PromotionView (HierarchyPromotionsSection)" as PromotionView <<typ>> #FFFFFF {
+    = 'create' | 'browse' | null
+  }
+}
+@enduml

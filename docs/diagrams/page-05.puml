@@ -1,0 +1,39 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src/hooks" {
+  class "HierarchyPromotionsApi" as HierarchyPromotionsApi <<typ>> #E0F7FA {
+    - hierarchyPromotions : HierarchyPromotion[]
+    - loading : boolean
+    - error : string | null
+    - setError : StateSetter<string | null>
+    + fetchHierarchyPromotions() : Promise<void>
+    + ensureHierarchyPromotions() : Promise<void>
+    + saveHierarchyPromotion() : Promise<boolean>
+    + toggleHierarchyPromotion() : Promise<boolean>
+  }
+  class "useHierarchyPromotions" as useHierarchyPromotions <<hook>> #EDE7F6 {
+    + useHierarchyPromotions(t) : HierarchyPromotionsApi
+  }
+  class "useModalA11y" as useModalA11y <<hook>> #EDE7F6 {
+    + useModalA11y(isOpen, onClose) : void
+  }
+}
+useHierarchyPromotions --> HierarchyPromotionsApi
+@enduml

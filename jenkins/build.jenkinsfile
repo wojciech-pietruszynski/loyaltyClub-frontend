@@ -1,0 +1,111 @@
+// Potok CI/CD warstwy prezentacji LoyaltyClub - w calosci na Dockerze.
+//
+// Na agencie potrzebny jest wylacznie dzialajacy Docker (z BuildKit). Node
+// ani node_modules nie sa wymagane - analizator, kontrola typow, testy oraz
+// budowanie Vite wykonuja sie w kontenerze zbudowanym z Dockerfile w korzeniu
+// repozytorium.
+//
+// Wymaganie wstepne: dziala wdrozenie backendu, ktore tworzy siec
+// "loyaltyclub-net". Do niej podlacza sie kontener SPA i to po niej nginx
+// przekazuje zadania /api do backendu.
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        // Rownolegle przebiegi walczylyby o te sama nazwe kontenera i port.
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    environment {
+        FRONTEND_IMAGE = 'loyaltyclub/frontend'
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        DOCKER_BUILDKIT = '1'
+    }
+
+    stages {
+        stage('Pobranie kodu') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Bramka jakosci') {
+            steps {
+                echo '==== Analizator, kontrola typow i testy w kontenerze ===='
+                // Cel ci-reports uruchamia lint + typecheck + testy i wystawia
+                // raport pokrycia do coverage-docker/ na dysku agenta.
+                sh 'bash ./scripts/stack.sh test'
+            }
+            post {
+                always {
+                    publishHTML(target: [
+                        reportDir            : 'coverage-docker/coverage',
+                        reportFiles          : 'index.html',
+                        reportName           : 'Pokrycie kodu (Vitest)',
+                        keepAll              : true,
+                        alwaysLinkToLastBuild: true,
+                        allowMissing         : true
+                    ])
+                }
+            }
+        }
+
+        stage('Budowanie obrazu') {
+            steps {
+                echo '==== Budowanie obrazu wykonawczego ===='
+                // VITE_API_BASE_URL zostaje puste: SPA odpytuje wlasny origin,
+                // a nginx z etapu runtime przekazuje /api do backendu. Dzieki
+                // temu ten sam obraz dziala pod dowolna domena.
+                sh '''
+                    docker build \
+                        --target runtime \
+                        --build-arg VITE_API_BASE_URL="" \
+                        -t "${FRONTEND_IMAGE}:${IMAGE_TAG}" \
+                        -t "${FRONTEND_IMAGE}:latest" \
+                        .
+                '''
+            }
+        }
+
+        stage('Wdrozenie') {
+            steps {
+                echo '==== Podmiana dzialajacej wersji ===='
+                sh '''
+                    # Siec nalezy do wdrozenia backendu - bez niej compose
+                    # frontendu nie ma sie do czego podlaczyc.
+                    docker network inspect loyaltyclub-net >/dev/null 2>&1 || {
+                        echo "BLAD: brak sieci loyaltyclub-net. Uruchom najpierw wdrozenie backendu."
+                        exit 1
+                    }
+                    IMAGE_TAG="${IMAGE_TAG}" docker compose up -d --no-build
+                '''
+            }
+        }
+
+        stage('Test dymny') {
+            steps {
+                echo '==== Weryfikacja SPA i przejscia /api do backendu ===='
+                // Sprawdza takze, czy zadanie /api dociera do kontenera
+                // backendu - odpowiedz 401 pochodzi z backendu, 502 od nginxa.
+                sh 'bash ./scripts/stack.sh smoke'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "==== WDROZENIE ZAKONCZONE POMYSLNIE (${FRONTEND_IMAGE}:${IMAGE_TAG}) ===="
+        }
+        failure {
+            echo '==== WDROZENIE NIEUDANE ===='
+            sh 'docker compose logs --tail 200 frontend || true'
+            echo "Wycofanie: IMAGE_TAG=<poprzedni numer> docker compose up -d --no-build"
+        }
+        always {
+            sh 'docker image prune -f --filter "until=168h" || true'
+        }
+    }
+}

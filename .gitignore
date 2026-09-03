@@ -28,3 +28,7 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+
+# Wyniki bramki jakosci uruchomionej w kontenerze (scripts/stack.sh test)
+coverage-docker
+ci-out

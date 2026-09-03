@@ -1,0 +1,12 @@
+# Skrypty powloki musza miec konce linii LF takze po pobraniu na Windowsie.
+# Przy core.autocrlf=true plik dostalby CRLF, a bash przewraca sie wtedy na
+# znaku CR - z komunikatem w rodzaju "$'\r': command not found", ktory nie
+# wskazuje na prawdziwa przyczyne.
+*.sh text eol=lf
+
+# Czytane przez narzedzia dzialajace w kontenerach Linuksa.
+Dockerfile text eol=lf
+*.jenkinsfile text eol=lf
+
+# Szablon konfiguracji nginx - podstawiany w kontenerze Linuksa.
+*.template text eol=lf

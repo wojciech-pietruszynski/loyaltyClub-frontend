@@ -25,11 +25,45 @@ Aplikacja SPA konsumująca REST API backendu (Spring Boot), które żyje w osobn
 
 ## Uruchomienie
 
-### Wymagania
+### A. W kontenerze (Docker)
+
+Potrzebny jest wyłącznie Docker — bez Node'a i bez `node_modules`.
+
+Najpierw musi działać warstwa serwerowa, bo to ona tworzy sieć
+`loyaltyclub-net`, do której podpina się kontener SPA:
+
+```bash
+cd ../loyalytyClub-backend && ./scripts/stack.sh up
+```
+
+Potem SPA:
+
+```bash
+./scripts/stack.sh up          # Linux / macOS
+.\scripts\stack.ps1 up          # Windows
+```
+
+Aplikacja jest dostępna pod **http://localhost:8080**. Skrypt czeka na stan
+`healthy` kontenera i wykonuje test dymny: pobiera stronę główną oraz wysyła
+żądanie na `/api/admin/auth/login`. Odpowiedź **401** oznacza, że żądanie
+doszło do backendu (błędne dane logowania); **502** oznaczałoby, że nginx nie
+dosięgnął kontenera backendu.
+
+| Polecenie | Efekt |
+|-----------|-------|
+| `build` | Zbudowanie obrazu (nginx + statyki z `dist/`) |
+| `test` | Bramka jakości w kontenerze: `lint`, `typecheck`, `test:coverage` |
+| `up` | Zbudowanie i uruchomienie SPA, czekanie na `healthy`, test dymny |
+| `down` | Zatrzymanie |
+| `logs` / `ps` / `smoke` | Diagnostyka działającego wdrożenia |
+
+### B. Serwer deweloperski
+
+#### Wymagania
 - Node.js 20+
 - Uruchomiony backend LoyaltyClub (domyślnie `http://localhost:8089`)
 
-### Instalacja i dev server
+#### Instalacja i dev server
 ```bash
 npm ci
 cp .env.example .env    # opcjonalnie — domyślne wartości wystarczą lokalnie
@@ -37,7 +71,7 @@ npm run dev
 ```
 Vite startuje na porcie **5173** i przekierowuje żądania `/api` na backend.
 
-### Komendy
+#### Komendy
 
 | Komenda | Opis |
 |---------|------|
@@ -53,6 +87,11 @@ Te same cztery kroki — `lint`, `typecheck`, `test:coverage`, `build` — stano
 bramkę jakości w potoku CI (`.github/workflows/ci.yml`). Zmiana z czerwonym
 analizatorem statycznym nie wejdzie na gałąź główną.
 
+CI uruchamia je w kontenerze (cel `ci` w `Dockerfile`), a nie przez lokalny
+Node — dzięki temu „przechodzi u mnie” i „przechodzi na CI” znaczą to samo.
+Ten sam zestaw można odpalić lokalnie bez instalowania zależności:
+`./scripts/stack.sh test`.
+
 ---
 
 ## Konfiguracja
@@ -64,9 +103,55 @@ Zmienne środowiskowe (wzorzec w `.env.example`):
 | `VITE_API_BASE_URL` | *(puste)* | Bazowy adres backendu wbudowywany w build produkcyjny. Puste = ten sam origin co SPA (wariant z reverse proxy kierującym `/api` na backend). |
 | `VITE_DEV_API_PROXY` | `http://localhost:8089` | Cel proxy `/api` dla serwera deweloperskiego Vite. |
 
+Wdrożenie kontenerowe (czytane przez `docker-compose.yml`):
+
+| Zmienna | Domyślnie | Opis |
+|---------|-----------|------|
+| `FRONTEND_HOST_PORT` | `8080` | Port SPA widoczny na hoście. |
+| `BACKEND_ORIGIN` | `http://loyalty-backend:8089` | Adres backendu w sieci kontenerów, do którego nginx przekazuje `/api`. |
+| `NGINX_RESOLVER` | `127.0.0.11` | Wbudowany DNS Dockera. |
+
+`VITE_API_BASE_URL` zostaje puste także w obrazie: SPA odpytuje własny origin,
+a przekazaniem `/api` dalej zajmuje się nginx w tym samym kontenerze.
+
 ---
 
 ## Wdrożenie
+
+### Obraz kontenera
+
+`Dockerfile` jest wieloetapowy; każdy etap to osobny cel budowania:
+
+| Cel | Przeznaczenie |
+|-----|---------------|
+| `deps` | `npm ci`; osobna warstwa, więc zmiana kodu nie instaluje zależności od nowa |
+| `ci` | `lint` + `typecheck` + `test:coverage` — bramka jakości |
+| `ci-reports` | Wystawienie raportu pokrycia poza obraz (`--output`) |
+| `build` | `npm run build` — statyki do `dist/` |
+| `runtime` | `nginx:1.29-alpine` ze statykami i `HEALTHCHECK` na `/healthz` |
+
+### Komunikacja z backendem
+
+Przeglądarka nie widzi sieci kontenerów — widzi ją nginx. Stąd układ:
+
+```
+przeglądarka → localhost:8080 → [loyalty-frontend / nginx]
+                                        │  /api/**
+                                        ↓
+                              [loyalty-backend :8089] → [db :5432]
+                                   sieć loyaltyclub-net
+```
+
+Konfiguracja nginx powstaje z `docker/nginx.conf.template` — wejście obrazu
+podmienia w nim `${BACKEND_ORIGIN}` przez `envsubst`. Adres backendu jest
+podstawiany do `proxy_pass` przez **zmienną**, więc nazwa kontenera
+rozwiązywana jest przy każdym żądaniu, a nie przy wczytywaniu konfiguracji —
+inaczej nginx nie wstawałby, gdyby frontend uruchomił się przed backendem.
+
+Ponieważ SPA i API leżą pod tym samym originem, `VITE_API_BASE_URL` zostaje
+puste i CORS po stronie backendu jest zbędny.
+
+### Bez Dockera
 
 `npm run build` produkuje statyczne pliki w `dist/`. Serwuj je dowolnym serwerem
 statycznym (nginx, Caddy, CDN) — bez dodatkowej konfiguracji przepisywania
@@ -78,6 +163,16 @@ Backend musi być osiągalny pod ścieżką `/api` z perspektywy przeglądarki �
 reverse proxy na tym samym origin (wtedy `VITE_API_BASE_URL` zostaje puste), albo przez
 podanie pełnego adresu w `VITE_API_BASE_URL` (wtedy backend musi zezwalać na CORS
 dla origin frontendu).
+
+### CI/CD
+
+| Plik | Rola |
+|------|------|
+| `.github/workflows/ci.yml` | Bramka jakości i obraz: cel `ci-reports`, budowanie obrazu, test dymny kontenera, publikacja do GHCR z `master` |
+| `jenkins/build.jenkinsfile` | Potok wdrożeniowy: bramka jakości, obraz ze znacznikiem numeru budowania, `docker compose up -d`, test dymny przejścia `/api` |
+
+Wycofanie zmiany to powtórzenie etapu wdrożenia ze starszym znacznikiem:
+`IMAGE_TAG=<numer budowania> docker compose up -d --no-build`.
 
 ---
 
@@ -100,6 +195,20 @@ src/
 ├── routes.ts              ← Trasy i ich dostępność według roli
 ├── App.tsx                ← Ustawienia interfejsu, sesja, dostawca kontekstu
 └── App.css                ← Style globalne + zmienne CSS
+```
+
+Pliki wdrożeniowe w korzeniu repozytorium:
+
+```
+├── Dockerfile                      ← Wieloetapowy: deps/ci/build/runtime
+├── .dockerignore
+├── docker-compose.yml              ← SPA w sieci loyaltyclub-net
+├── docker/nginx.conf.template      ← Statyki + przekazanie /api do backendu
+├── scripts/
+│   ├── stack.sh                    ← build / test / up / down / smoke
+│   └── stack.ps1                   ← to samo, dla Windowsa
+├── jenkins/build.jenkinsfile       ← Potok wdrożeniowy (Docker)
+└── .github/workflows/ci.yml        ← Bramka jakości (GitHub Actions)
 ```
 
 Standardy kodowania obowiązujące w tym repozytorium: [`docs/frontend_rules.md`](docs/frontend_rules.md).

@@ -1,0 +1,115 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src/types" {
+  interface "AuditLogEntry" as AuditLogEntry <<interfejs>> #FFF3C4 {
+    - id : number
+    - timestamp : string
+    - username : string
+    - role : string
+    - action : string
+    - resourceType : string
+    - resourceId : string | null
+  }
+  interface "Coupon" as Coupon <<interfejs>> #FFF3C4 {
+    - id : number
+    - couponCode : string
+    - customerId : number
+    - customerName : string
+    - country : string
+    - couponValue : number
+    - minimumPurchaseValue : number
+    - requiredPoints : number
+    - validityDays : number
+    - couponPrefix : string
+    - reason : 'POINTS_EXCHANGE' | 'COMPLAINT'
+    - status : 'ACTIVE' | 'USED' | 'EXPIRED'
+    - issuedAt : string
+    - expiresAt : string
+  }
+  interface "CouponTemplate" as CouponTemplate <<interfejs>> #FFF3C4 {
+    - id : number
+    - couponValue : number
+    - minimumPurchaseValue : number
+    - requiredPoints : number
+    - country : string
+    - validityDays : number
+    - couponPrefix : string
+  }
+  interface "Customer" as Customer <<interfejs>> #FFF3C4 {
+    - id : number
+    - firstName : string
+    - lastName : string
+    - email : string
+    - customerNumber : string
+    - phoneNumber : string
+    - country : string
+    - loyaltyPoints : number
+    - loyaltyTierCode? : string
+    - referralCode? : string | null
+  }
+  interface "CustomerTransaction" as CustomerTransaction <<interfejs>> #FFF3C4 {
+    - id : number
+    - points : number
+    - description : string
+    - timestamp : string
+    - availableFrom : string | null
+  }
+  interface "HierarchyPromotion" as HierarchyPromotion <<interfejs>> #FFF3C4 {
+    - id : number
+    - name : string
+    - country : string
+    - hierarchy : string | null
+    - productClass : string | null
+    - subclass : string | null
+    - type : HierarchyPromotionType
+    - multiplier : number | null
+    - startsAt : string
+    - endsAt : string | null
+    - enabled : boolean
+  }
+  enum "HierarchyPromotionType" as HierarchyPromotionType #FFECB3 {
+    MULTIPLIER
+    EXCLUSION
+  }
+  interface "ReportsSummary" as ReportsSummary <<interfejs>> #FFF3C4 {
+    - scope : string | null
+    - customerCount : number
+    - totalLoyaltyPoints : number
+    - transactionsLast30Days : number
+  }
+  interface "StorePromotion" as StorePromotion <<interfejs>> #FFF3C4 {
+    - id : number
+    - name : string
+    - country : string
+    - pointsPerCurrency : number
+    - startsAt : string
+    - endsAt : string | null
+    - enabled : boolean
+  }
+  interface "TechnicalUser" as TechnicalUser <<interfejs>> #FFF3C4 {
+    - id : number
+    - username : string
+    - passwordPreview : string | null
+    - country : string
+    - enabled : boolean
+  }
+}
+HierarchyPromotion --> HierarchyPromotionType
+@enduml

@@ -1,0 +1,122 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src/types" {
+  class "CouponFormState" as CouponFormState <<typ>> #E3F2FD {
+    - customerId : string
+    - couponTemplateId : string
+    - reason : string
+  }
+  class "CouponTemplateFormState" as CouponTemplateFormState <<typ>> #E3F2FD {
+    - couponValue : string
+    - minimumPurchaseValue : string
+    - requiredPoints : string
+    - country : string
+    - validityDays : string
+    - couponPrefix : string
+  }
+  class "CustomerCouponFormState" as CustomerCouponFormState <<typ>> #E3F2FD {
+    - couponTemplateId : string
+    - reason : string
+  }
+  class "CustomerEditFormState" as CustomerEditFormState <<typ>> #E3F2FD {
+    - firstName : string
+    - lastName : string
+    - email : string
+    - customerNumber : string
+    - phoneNumber : string
+    - country : string
+  }
+  enum "CustomerModalTab" as CustomerModalTab #FFECB3 {
+    profile
+    balance
+    issue-coupon
+    coupon-history
+  }
+  class "HierarchyPromotionFormState" as HierarchyPromotionFormState <<typ>> #E3F2FD {
+    - id : number | null
+    - name : string
+    - country : string
+    - hierarchy : string
+    - productClass : string
+    - subclass : string
+    - type : 'MULTIPLIER' | 'EXCLUSION'
+    - multiplier : string
+    - startsAt : string
+    - endsAt : string
+    - enabled : boolean
+  }
+  class "NewCustomerFormState" as NewCustomerFormState <<typ>> #E3F2FD {
+    - firstName : string
+    - lastName : string
+    - email : string
+    - customerNumber : string
+    - phoneNumber : string
+    - country : string
+    - referrerCustomerNumber : string
+  }
+  class "NewPointsFormState" as NewPointsFormState <<typ>> #E3F2FD {
+    - customerId : string
+    - points : string
+    - description : string
+  }
+  class "PromotionFormState" as PromotionFormState <<typ>> #E3F2FD {
+    - id : number | null
+    - name : string
+    - country : string
+    - pointsPerCurrency : string
+    - startsAt : string
+    - endsAt : string
+    - enabled : boolean
+  }
+  class "PurchaseHistoryPoint" as PurchaseHistoryPoint <<typ>> #E3F2FD {
+    - date : string
+    - total : number
+  }
+  class "PurchaseHistorySeries" as PurchaseHistorySeries <<typ>> #E3F2FD {
+    - points : PurchaseHistoryPoint[]
+    - maxTotal : number
+  }
+  class "StateSetter" as StateSetter <<typ>> #E3F2FD {
+    = Dispatch<SetStateAction<T>>
+  }
+  enum "Tab" as Tab #FFECB3 {
+    customers
+    add-points
+    coupons
+    promotions
+    reports
+    tools
+  }
+  class "TechnicalUserFormState" as TechnicalUserFormState <<typ>> #E3F2FD {
+    - username : string
+    - password : string
+    - country : string
+    - enabled : boolean
+  }
+  enum "Theme" as Theme #FFECB3 {
+    light
+    dark
+  }
+  class "Translator" as Translator <<typ>> #E3F2FD {
+    = (key: TranslationKey, params?: Record<string, string | number...
+  }
+}
+PurchaseHistorySeries "1" --> "*" PurchaseHistoryPoint
+@enduml

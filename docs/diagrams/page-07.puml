@@ -1,0 +1,105 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 96
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classAttributeFontSize 10
+skinparam ArrowColor #546E7A
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #FFFFFF
+skinparam packageBorderColor #90A4AE
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam nodesep 22
+skinparam ranksep 40
+hide empty members
+
+package "src" {
+  class "App" as App <<komponent>> #FFE0E6 {
+    + App() : JSX.Element
+  }
+  class "RouteDefinition" as RouteDefinition <<typ>> #FFFFFF {
+    - tab : Tab
+    - path : string
+    - labelKey : TranslationKey
+    - roles : AuthRole[] | null
+  }
+  class "main" as main <<moduł>> #E8F5E9 {
+  }
+  class "routes" as routes <<moduł>> #E8F5E9 {
+    - ROUTES : RouteDefinition[]
+    - DEFAULT_ROUTE : '/customers'
+    + isRouteAllowed(route, role) : boolean
+    + routesForRole(role) : RouteDefinition[]
+  }
+}
+package "src/components" {
+  class "AppHeader" as AppHeader <<komponent>> #FFE0E6 {
+    - appLogo : string
+    - loading : boolean
+    + AppHeader({...}) : JSX.Element
+  }
+  class "AppShell" as AppShell <<komponent>> #FFE0E6 {
+    - appLogo : string
+    + AppShell({...}) : JSX.Element
+  }
+  class "ErrorBoundary" as ErrorBoundary #ECEFF1 {
+    - t : Translator
+    - children : ReactNode
+    - state : ErrorBoundaryState
+    + getDerivedStateFromError() : ErrorBoundaryState
+    + componentDidCatch() : void
+    + render() : ReactNode
+  }
+}
+package "src/context" {
+  class "AppContextValue" as AppContextValue <<typ>> #ECEFF1 {
+    - language : Language
+    - theme : Theme
+    - t : Translator
+    - format : Formatters
+    - config : { countries: string[]; couponPrefixes: string[]; }
+    - data : { customers: CustomersApi; coupons: CouponsApi; promotions: P...
+    + setLanguage() : void
+    + setTheme() : void
+    + tPlural() : string
+    + reasonLabel() : string
+    + statusLabel() : string
+    + session() : void; }
+    + notifySuccess() : void
+    + notifyError() : void
+  }
+  class "AppProvider" as AppProvider <<komponent>> #FFE0E6 {
+    - language : Language
+    - theme : Theme
+    - children : ReactNode
+    + setLanguage() : void
+    + setTheme() : void
+    + session() : void; }
+    + onNotification() : void
+    + AppProvider({...}) : JSX.Element
+  }
+  class "Notification" as Notification <<typ>> #ECEFF1 {
+    - type : 'success' | 'error'
+    - message : string
+  }
+  class "useAppContext" as useAppContext <<hook>> #EDE7F6 {
+    + useAppContext() : AppContextValue
+  }
+}
+App ..> AppProvider
+App ..> AppShell
+App ..> ErrorBoundary
+App ..> Notification
+AppHeader ..> useAppContext
+AppProvider ..> AppContextValue
+AppProvider ..> useAppContext
+AppShell ..> AppHeader
+AppShell ..> routes
+AppShell ..> useAppContext
+routes "1" --> "*" RouteDefinition
+useAppContext --> AppContextValue
+@enduml
