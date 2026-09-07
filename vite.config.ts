@@ -28,6 +28,8 @@ export default defineConfig({
         'src/test/**',         // atrapy i harness testowy
         'src/types/**',        // same deklaracje typów
         'src/i18n/{pl,en,de}.ts', // słowniki tłumaczeń
+        'playwright.config.ts', // konfiguracja testów end-to-end
+        'e2e/**',              // scenariusze Playwrighta, nie kod aplikacji
       ],
     },
   },
