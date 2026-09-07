@@ -8,6 +8,7 @@ import {
   logout as apiLogout,
   type AuthRole,
 } from '../api/client';
+import { getErrorStatus } from '../api/errors';
 import type { StateSetter, Translator } from '../types/ui';
 import { useApiErrorMessage } from './useApiError';
 
@@ -40,10 +41,18 @@ export function useAuth(t: Translator): AuthApi {
       setAuthError(null);
       return true;
     } catch (err: unknown) {
+      // Odpowiedź 401 niesie w dokumencie błędu angielskie "Unauthorized" —
+      // tekst techniczny, nieprzetłumaczony i dla operatora nic nieznaczący.
+      // Odrzucone poświadczenia mają własny komunikat w słowniku, więc kod
+      // odpowiedzi rozstrzygamy przed sięgnięciem po treść dokumentu.
+      if (getErrorStatus(err) === 401) {
+        setAuthError(t('invalidCredentials'));
+        return false;
+      }
       setAuthError(toMessage(err, 'loginFailed'));
       return false;
     }
-  }, [toMessage]);
+  }, [t, toMessage]);
 
   const logout = useCallback(() => {
     apiLogout();

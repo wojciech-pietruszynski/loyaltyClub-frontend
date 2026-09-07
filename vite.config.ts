@@ -15,6 +15,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
+    // Katalog e2e nalezy do Playwrighta - jego przypadki wymagaja przegladarki
+    // i dzialajacego backendu, wiec vitest nie ma ich zbierac.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
